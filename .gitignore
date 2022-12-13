@@ -1,0 +1,9 @@
+*
+!src
+!src/**
+!.dockerignore
+!.gitignore
+!.gitlab-ci.yml
+!CHANGELOG.md
+!metadata.json
+!README.md
