@@ -40,7 +40,7 @@ export class GetAuthenticationRouterCommand {
             "callback",
             "login",
             "logout"
-        ])
+        ]) {
             router.get(`${authentication_base_route}/${route}`, async (req, res) => {
                 try {
                     const url = new URL(`${open_id_connect_rest_api_url}/${route}`);
@@ -77,6 +77,7 @@ export class GetAuthenticationRouterCommand {
                     res.end();
                 }
             });
+        }
 
         const user_infos_cache = new Map();
 
