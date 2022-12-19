@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2022-12-19-1
+
+Changes:
+
+- stream proxy body
+
 ## v2022-12-14-1
 
 Changes:
