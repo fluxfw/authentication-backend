@@ -1,5 +1,7 @@
 import { AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL } from "../../../Adapter/Authentication/AUTHENTICATION_BACKEND.mjs";
 import express from "express";
+import { HEADER_CONTENT_TYPE } from "../../../../../flux-fetch-api/src/Adapter/Header/HEADER.mjs";
+import { Writable } from "node:stream";
 
 export class GetAuthenticationRouterCommand {
     /**
@@ -59,7 +61,7 @@ export class GetAuthenticationRouterCommand {
                     });
 
                     for (const key of [
-                        "content-type",
+                        HEADER_CONTENT_TYPE,
                         "location",
                         "set-cookie"
                     ]) {
@@ -70,7 +72,9 @@ export class GetAuthenticationRouterCommand {
                         res.header(key, response.headers.get(key));
                     }
 
-                    res.status(response.status).send(await response.text());
+                    res.status(response.status);
+
+                    response.body.pipeTo(Writable.toWeb(res));
                 } catch (error) {
                     console.error(error);
 
