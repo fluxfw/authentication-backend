@@ -45,6 +45,17 @@ export class GetAuthenticationRouterCommand {
         ]) {
             router.get(`${authentication_base_route}/${route}`, async (req, res) => {
                 try {
+                    const headers = new Headers();
+                    for (const key of [
+                        "cookie"
+                    ]) {
+                        if (!(key in res.headers)) {
+                            continue;
+                        }
+
+                        headers.set(key, req.headers[key]);
+                    }
+
                     const url = new URL(`${open_id_connect_rest_api_url}/${route}`);
                     for (const [
                         key,
@@ -54,9 +65,7 @@ export class GetAuthenticationRouterCommand {
                     }
 
                     const response = await fetch(url, {
-                        headers: {
-                            cookie: req.headers.cookie
-                        },
+                        headers,
                         redirect: "manual"
                     });
 
@@ -74,7 +83,7 @@ export class GetAuthenticationRouterCommand {
 
                     res.status(response.status);
 
-                    response.body.pipeTo(Writable.toWeb(res));
+                    await response.body.pipeTo(Writable.toWeb(res));
                 } catch (error) {
                     console.error(error);
 
