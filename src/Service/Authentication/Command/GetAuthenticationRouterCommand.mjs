@@ -49,7 +49,7 @@ export class GetAuthenticationRouterCommand {
                     for (const key of [
                         "cookie"
                     ]) {
-                        if (!(key in res.headers)) {
+                        if (!(key in req.headers)) {
                             continue;
                         }
 
