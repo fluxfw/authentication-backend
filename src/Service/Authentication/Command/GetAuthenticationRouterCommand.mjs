@@ -1,7 +1,9 @@
 import { AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL } from "../../../Adapter/Authentication/AUTHENTICATION_BACKEND.mjs";
+import { CONTENT_TYPE_HTML } from "../../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import express from "express";
-import { HEADER_CONTENT_TYPE } from "../../../../../flux-fetch-api/src/Adapter/Header/HEADER.mjs";
 import { Writable } from "node:stream";
+import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
+import { STATUS_302, STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
 
 export class GetAuthenticationRouterCommand {
     /**
@@ -47,7 +49,7 @@ export class GetAuthenticationRouterCommand {
                 try {
                     const headers = new Headers();
                     for (const key of [
-                        "cookie"
+                        HEADER_COOKIE
                     ]) {
                         if (!(key in req.headers)) {
                             continue;
@@ -60,7 +62,7 @@ export class GetAuthenticationRouterCommand {
                     for (const [
                         key,
                         value
-                    ] of Object.entries(req.query)) {
+                    ] of new URL(req.url, "http://host").searchParams.entries()) {
                         url.searchParams.append(key, value);
                     }
 
@@ -69,19 +71,19 @@ export class GetAuthenticationRouterCommand {
                         redirect: "manual"
                     });
 
+                    res.statusCode = response.status;
+
                     for (const key of [
                         HEADER_CONTENT_TYPE,
-                        "location",
-                        "set-cookie"
+                        HEADER_LOCATION,
+                        HEADER_SET_COOKIE
                     ]) {
                         if (!response.headers.has(key)) {
                             continue;
                         }
 
-                        res.header(key, response.headers.get(key));
+                        res.setHeader(key, response.headers.get(key));
                     }
-
-                    res.status(response.status);
 
                     await response.body.pipeTo(Writable.toWeb(res));
                 } catch (error) {
@@ -98,8 +100,8 @@ export class GetAuthenticationRouterCommand {
             req.userInfos = null;
 
             try {
-                if ("cookie" in req.headers) {
-                    const { cookie } = req.headers;
+                if (HEADER_COOKIE in req.headers) {
+                    const { [HEADER_COOKIE]: cookie } = req.headers;
 
                     if (user_infos_cache.has(cookie)) {
                         req.userInfos = user_infos_cache.get(cookie);
@@ -118,13 +120,13 @@ export class GetAuthenticationRouterCommand {
                         user_infos_cache.set(cookie, req.userInfos);
 
                         for (const key of [
-                            "set-cookie"
+                            HEADER_SET_COOKIE
                         ]) {
                             if (!response.headers.has(key)) {
                                 continue;
                             }
 
-                            res.header(key, response.headers.get(key));
+                            res.setHeader(key, response.headers.get(key));
                         }
                     }
                 }
@@ -133,11 +135,13 @@ export class GetAuthenticationRouterCommand {
             }
 
             if (req.userInfos === null) {
-                if (req.accepts("html")) {
-                    res.redirect(302, `${authentication_base_route}/login`);
+                if (HEADER_ACCEPT in req.headers && req.headers[HEADER_ACCEPT].includes(CONTENT_TYPE_HTML)) {
+                    res.statusCode = STATUS_302;
+                    res.setHeader(HEADER_LOCATION, `${authentication_base_route}/login`);
                 } else {
-                    res.sendStatus(401);
+                    res.statusCode = STATUS_401;
                 }
+                res.end();
                 return;
             }
 
@@ -145,7 +149,9 @@ export class GetAuthenticationRouterCommand {
         });
 
         router.get(protect_route, (req, res) => {
-            res.redirect(302, authentication_success_url);
+            res.statusCode = STATUS_302;
+            res.setHeader(HEADER_LOCATION, authentication_success_url);
+            res.end();
         });
 
         return router;
