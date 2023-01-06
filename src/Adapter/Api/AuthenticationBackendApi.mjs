@@ -1,4 +1,5 @@
 /** @typedef {import("../../Service/Authentication/Port/AuthenticationService.mjs").AuthenticationService} AuthenticationService */
+/** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("express")} express */
 
 export class AuthenticationBackendApi {
@@ -7,25 +8,33 @@ export class AuthenticationBackendApi {
      */
     #authentication_service = null;
     /**
+     * @type {HttpApi}
+     */
+    #http_api;
+    /**
      * @type {string | null}
      */
     #open_id_connect_rest_api_url;
 
     /**
+     * @param {HttpApi} http_api
      * @param {string | null} open_id_connect_rest_api_url
      * @returns {AuthenticationBackendApi}
      */
-    static new(open_id_connect_rest_api_url = null) {
+    static new(http_api, open_id_connect_rest_api_url = null) {
         return new this(
+            http_api,
             open_id_connect_rest_api_url
         );
     }
 
     /**
+     * @param {HttpApi} http_api
      * @param {string | null} open_id_connect_rest_api_url
      * @private
      */
-    constructor(open_id_connect_rest_api_url) {
+    constructor(http_api, open_id_connect_rest_api_url) {
+        this.#http_api = http_api;
         this.#open_id_connect_rest_api_url = open_id_connect_rest_api_url;
     }
 
@@ -48,6 +57,7 @@ export class AuthenticationBackendApi {
      */
     async #getAuthenticationService() {
         this.#authentication_service ??= (await import("../../Service/Authentication/Port/AuthenticationService.mjs")).AuthenticationService.new(
+            this.#http_api,
             this.#open_id_connect_rest_api_url
         );
 
