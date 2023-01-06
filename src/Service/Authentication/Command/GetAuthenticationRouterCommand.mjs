@@ -1,31 +1,40 @@
 import { AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL } from "../../../Adapter/Authentication/AUTHENTICATION_BACKEND.mjs";
 import { CONTENT_TYPE_HTML } from "../../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import express from "express";
-import { Writable } from "node:stream";
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
-import { STATUS_302, STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
+import { STATUS_302, STATUS_400, STATUS_401, STATUS_500 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
+
+/** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 
 export class GetAuthenticationRouterCommand {
+    /**
+     * @type {HttpApi}
+     */
+    #http_api;
     /**
      * @type {string | null}
      */
     #open_id_connect_rest_api_url;
 
     /**
+     * @param {HttpApi} http_api
      * @param {string | null} open_id_connect_rest_api_url
      * @returns {GetAuthenticationRouterCommand}
      */
-    static new(open_id_connect_rest_api_url = null) {
+    static new(http_api, open_id_connect_rest_api_url = null) {
         return new this(
+            http_api,
             open_id_connect_rest_api_url
         );
     }
 
     /**
+     * @param {HttpApi} http_api
      * @param {string | null} open_id_connect_rest_api_url
      * @private
      */
-    constructor(open_id_connect_rest_api_url) {
+    constructor(http_api, open_id_connect_rest_api_url) {
+        this.#http_api = http_api;
         this.#open_id_connect_rest_api_url = open_id_connect_rest_api_url;
     }
 
@@ -46,51 +55,82 @@ export class GetAuthenticationRouterCommand {
             "logout"
         ]) {
             router.get(`${authentication_base_route}/${route}`, async (req, res) => {
+                let request;
                 try {
-                    const headers = new Headers();
-                    for (const key of [
-                        HEADER_COOKIE
-                    ]) {
-                        if (!(key in req.headers)) {
-                            continue;
-                        }
+                    request = await this.#http_api.mapServerRequestToRequest(
+                        req
+                    );
+                } catch (error) {
+                    console.error(error);
 
-                        headers.set(key, req.headers[key]);
-                    }
+                    await this.#http_api.mapResponseToServerResponse(
+                        new Response(null, {
+                            status: STATUS_400
+                        }),
+                        res
+                    );
+                    return;
+                }
 
+                let response;
+                try {
                     const url = new URL(`${open_id_connect_rest_api_url}/${route}`);
                     for (const [
                         key,
                         value
-                    ] of new URL(req.url, "http://host").searchParams.entries()) {
+                    ] of request._urlObject.searchParams.entries()) {
                         url.searchParams.append(key, value);
                     }
 
-                    const response = await fetch(url, {
-                        headers,
+                    const fetch_response = await fetch(`${url}`, {
+                        headers: [
+                            HEADER_COOKIE
+                        ].reduce((headers, key) => {
+                            if (!request.headers.has(key)) {
+                                return headers;
+                            }
+
+                            headers[key] = request.headers.get(key);
+
+                            return headers;
+                        }, {}),
                         redirect: "manual"
                     });
 
-                    res.statusCode = response.status;
+                    response = new Response(fetch_response.body, {
+                        status: fetch_response.status,
+                        headers: [
+                            HEADER_CONTENT_TYPE,
+                            HEADER_LOCATION,
+                            HEADER_SET_COOKIE
+                        ].reduce((headers, key) => {
+                            if (!fetch_response.headers.has(key)) {
+                                return headers;
+                            }
 
-                    for (const key of [
-                        HEADER_CONTENT_TYPE,
-                        HEADER_LOCATION,
-                        HEADER_SET_COOKIE
-                    ]) {
-                        if (!response.headers.has(key)) {
-                            continue;
-                        }
+                            headers[key] = fetch_response.headers.get(key);
 
-                        res.setHeader(key, response.headers.get(key));
-                    }
-
-                    await response.body.pipeTo(Writable.toWeb(res));
+                            return headers;
+                        }, {})
+                    });
                 } catch (error) {
                     console.error(error);
 
-                    res.end();
+                    await this.#http_api.mapResponseToServerResponse(
+                        new Response(null, {
+                            status: STATUS_500
+                        }),
+                        res,
+                        request
+                    );
+                    return;
                 }
+
+                await this.#http_api.mapResponseToServerResponse(
+                    response,
+                    res,
+                    request
+                );
             });
         }
 
@@ -135,23 +175,23 @@ export class GetAuthenticationRouterCommand {
             }
 
             if (req.userInfos === null) {
-                if (HEADER_ACCEPT in req.headers && req.headers[HEADER_ACCEPT].includes(CONTENT_TYPE_HTML)) {
-                    res.statusCode = STATUS_302;
-                    res.setHeader(HEADER_LOCATION, `${authentication_base_route}/login`);
-                } else {
-                    res.statusCode = STATUS_401;
-                }
-                res.end();
+                await this.#http_api.mapResponseToServerResponse(
+                    req.headers[HEADER_ACCEPT]?.includes(CONTENT_TYPE_HTML) ?? false ? Response.redirect(`${authentication_base_route}/login`, STATUS_302) : new Response(null, {
+                        status: STATUS_401
+                    }),
+                    res
+                );
                 return;
             }
 
             next();
         });
 
-        router.get(protect_route, (req, res) => {
-            res.statusCode = STATUS_302;
-            res.setHeader(HEADER_LOCATION, authentication_success_url);
-            res.end();
+        router.get(protect_route, async (req, res) => {
+            await this.#http_api.mapResponseToServerResponse(
+                Response.redirect(authentication_success_url, STATUS_302),
+                res
+            );
         });
 
         return router;
