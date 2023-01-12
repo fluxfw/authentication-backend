@@ -3,10 +3,15 @@ import { CONTENT_TYPE_HTML } from "../../../../../flux-http-api/src/Adapter/Cont
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { STATUS_302, STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
 
+/** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Request/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Response/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
 
 export class HandleAuthenticationCommand {
+    /**
+     * @type {HttpApi}
+     */
+    #http_api;
     /**
      * @type {string | null}
      */
@@ -17,23 +22,27 @@ export class HandleAuthenticationCommand {
     #user_infos_cache;
 
     /**
+     * @param {HttpApi} http_api
      * @param {Map} user_infos_cache
      * @param {string | null} open_id_connect_rest_api_url
      * @returns {HandleAuthenticationCommand}
      */
-    static new(user_infos_cache, open_id_connect_rest_api_url = null) {
+    static new(http_api, user_infos_cache, open_id_connect_rest_api_url = null) {
         return new this(
+            http_api,
             user_infos_cache,
             open_id_connect_rest_api_url
         );
     }
 
     /**
+     * @param {HttpApi} http_api
      * @param {Map} user_infos_cache
      * @param {string | null} open_id_connect_rest_api_url
      * @private
      */
-    constructor(user_infos_cache, open_id_connect_rest_api_url) {
+    constructor(http_api, user_infos_cache, open_id_connect_rest_api_url) {
+        this.#http_api = http_api;
         this.#user_infos_cache = user_infos_cache;
         this.#open_id_connect_rest_api_url = open_id_connect_rest_api_url;
     }
@@ -54,45 +63,22 @@ export class HandleAuthenticationCommand {
             "logout"
         ]) {
             if (request._urlObject.pathname === `${authentication_base_route}/${route}`) {
-                const url = new URL(`${open_id_connect_rest_api_url}/${route}`);
-                for (const [
-                    key,
-                    value
-                ] of request._urlObject.searchParams.entries()) {
-                    url.searchParams.append(key, value);
-                }
-
-                const response = await fetch(`${url}`, {
-                    headers: [
-                        HEADER_COOKIE
-                    ].reduce((headers, key) => {
-                        if (!request.headers.has(key)) {
-                            return headers;
-                        }
-
-                        headers[key] = request.headers.get(key);
-
-                        return headers;
-                    }, {}),
-                    redirect: "manual"
-                });
-
-                return new Response(response.body, {
-                    status: response.status,
-                    headers: [
-                        HEADER_CONTENT_TYPE,
-                        HEADER_LOCATION,
-                        HEADER_SET_COOKIE
-                    ].reduce((headers, key) => {
-                        if (!response.headers.has(key)) {
-                            return headers;
-                        }
-
-                        headers[key] = response.headers.get(key);
-
-                        return headers;
-                    }, {})
-                });
+                return this.#http_api.proxyRequest(
+                    {
+                        url: `${open_id_connect_rest_api_url}/${route}`,
+                        request,
+                        request_query_params: true,
+                        request_headers: [
+                            HEADER_COOKIE
+                        ],
+                        response_redirect: true,
+                        response_headers: [
+                            HEADER_CONTENT_TYPE,
+                            HEADER_LOCATION,
+                            HEADER_SET_COOKIE
+                        ]
+                    }
+                );
             }
         }
 
@@ -112,6 +98,7 @@ export class HandleAuthenticationCommand {
                     });
 
                     if (!response.ok) {
+                        response.body?.cancel();
                         throw response;
                     }
 
