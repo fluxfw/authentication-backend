@@ -123,7 +123,12 @@ export class HandleAuthenticationCommand {
 
         if (request._userInfos === null) {
             if (request.headers.get(HEADER_ACCEPT)?.includes(CONTENT_TYPE_HTML) ?? false) {
-                return Response.redirect(`${authentication_base_route}/login`, STATUS_302);
+                return new Response(null, {
+                    status: STATUS_302,
+                    headers: {
+                        [HEADER_LOCATION]: `${authentication_base_route}/login`
+                    }
+                });
             } else {
                 return new Response(null, {
                     status: STATUS_401
@@ -132,7 +137,12 @@ export class HandleAuthenticationCommand {
         }
 
         if (request._urlObject.pathname === api_route) {
-            return Response.redirect(authentication_success_url, STATUS_302);
+            return new Response(null, {
+                status: STATUS_302,
+                headers: {
+                    [HEADER_LOCATION]: authentication_success_url
+                }
+            });
         }
 
         return null;

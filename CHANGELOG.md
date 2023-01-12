@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-01-12-3
+
+Changes:
+
+- Fix redirect
+
 ## v2023-01-12-2
 
 Changes:
