@@ -99,7 +99,8 @@ export class HandleAuthenticationCommand {
 
                     if (!response.ok) {
                         response.body?.cancel();
-                        throw response;
+
+                        return Promise.reject(response);
                     }
 
                     request._userInfos = await response.json();
