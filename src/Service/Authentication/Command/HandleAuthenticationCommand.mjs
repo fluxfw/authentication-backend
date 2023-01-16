@@ -1,11 +1,11 @@
 import { AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL } from "../../../Adapter/Authentication/AUTHENTICATION_BACKEND.mjs";
 import { CONTENT_TYPE_HTML } from "../../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
+import { HttpResponse } from "../../../../../flux-http-api/src/Adapter/Response/HttpResponse.mjs";
+import { STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
-import { STATUS_302, STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
 
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Request/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Response/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
+/** @typedef {import("../../../../../flux-http-api/src/Adapter/Request/HttpRequest.mjs").HttpRequest} HttpRequest */
 
 export class HandleAuthenticationCommand {
     /**
@@ -48,11 +48,11 @@ export class HandleAuthenticationCommand {
     }
 
     /**
-     * @param {HttpServerRequest} request
+     * @param {HttpRequest} request
      * @param {string} authentication_base_route
      * @param {string} api_route
      * @param {string} authentication_success_url
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpResponse | null>}
      */
     async handleAuthentication(request, authentication_base_route, api_route, authentication_success_url) {
         const open_id_connect_rest_api_url = this.#open_id_connect_rest_api_url ?? AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL;
@@ -62,7 +62,7 @@ export class HandleAuthenticationCommand {
             "login",
             "logout"
         ]) {
-            if (request._urlObject.pathname === `${authentication_base_route}/${route}`) {
+            if (request.url.pathname === `${authentication_base_route}/${route}`) {
                 return this.#http_api.proxyRequest(
                     {
                         url: `${open_id_connect_rest_api_url}/${route}`,
@@ -85,7 +85,9 @@ export class HandleAuthenticationCommand {
         request._userInfos = null;
 
         try {
-            const cookie = request.headers.get(HEADER_COOKIE);
+            const cookie = request.getHeader(
+                HEADER_COOKIE
+            );
 
             if (cookie !== null) {
                 if (this.#user_infos_cache.has(cookie)) {
@@ -113,7 +115,7 @@ export class HandleAuthenticationCommand {
                             continue;
                         }
 
-                        request._res.setHeader(key, response.headers.get(key));
+                        request._res?.setHeader(key, response.headers.get(key));
                     }
                 }
             }
@@ -122,27 +124,24 @@ export class HandleAuthenticationCommand {
         }
 
         if (request._userInfos === null) {
-            if (request.headers.get(HEADER_ACCEPT)?.includes(CONTENT_TYPE_HTML) ?? false) {
-                return new Response(null, {
-                    status: STATUS_302,
-                    headers: {
-                        [HEADER_LOCATION]: `${authentication_base_route}/login`
-                    }
-                });
+            if (request.getHeader(
+                HEADER_ACCEPT
+            )?.includes(CONTENT_TYPE_HTML) ?? false) {
+                return HttpResponse.newRedirect(
+                    `${authentication_base_route}/login`
+                );
             } else {
-                return new Response(null, {
-                    status: STATUS_401
-                });
+                return HttpResponse.new(
+                    null,
+                    STATUS_401
+                );
             }
         }
 
-        if (request._urlObject.pathname === api_route) {
-            return new Response(null, {
-                status: STATUS_302,
-                headers: {
-                    [HEADER_LOCATION]: authentication_success_url
-                }
-            });
+        if (request.url.pathname === api_route) {
+            return HttpResponse.newRedirect(
+                authentication_success_url
+            );
         }
 
         return null;
