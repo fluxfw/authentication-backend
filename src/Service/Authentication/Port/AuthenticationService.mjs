@@ -1,6 +1,6 @@
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Request/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Response/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
+/** @typedef {import("../../../../../flux-http-api/src/Adapter/Request/HttpRequest.mjs").HttpRequest} HttpRequest */
+/** @typedef {import("../../../../../flux-http-api/src/Adapter/Response/HttpResponse.mjs").HttpResponse} HttpResponse */
 
 export class AuthenticationService {
     /**
@@ -43,11 +43,11 @@ export class AuthenticationService {
     }
 
     /**
-     * @param {HttpServerRequest} request
+     * @param {HttpRequest} request
      * @param {string} authentication_base_route
      * @param {string} api_route
      * @param {string} authentication_success_url
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpResponse | null>}
      */
     async handleAuthentication(request, authentication_base_route, api_route, authentication_success_url) {
         return (await import("../Command/HandleAuthenticationCommand.mjs")).HandleAuthenticationCommand.new(
