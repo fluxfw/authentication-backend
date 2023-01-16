@@ -127,19 +127,19 @@ export class HandleAuthenticationCommand {
             if (request.getHeader(
                 HEADER_ACCEPT
             )?.includes(CONTENT_TYPE_HTML) ?? false) {
-                return HttpResponse.newRedirect(
+                return HttpResponse.newFromRedirect(
                     `${authentication_base_route}/login`
                 );
             } else {
-                return HttpResponse.new(
-                    null,
+                return HttpResponse.newFromTextBody(
+                    "Authorization needed",
                     STATUS_401
                 );
             }
         }
 
         if (request.url.pathname === api_route) {
-            return HttpResponse.newRedirect(
+            return HttpResponse.newFromRedirect(
                 authentication_success_url
             );
         }
