@@ -131,7 +131,7 @@ export class HandleAuthenticationCommand {
                     `${authentication_base_route}/login`
                 );
             } else {
-                return HttpResponse.newFromTextBody(
+                return HttpResponse.newFromText(
                     "Authorization needed",
                     STATUS_401
                 );
