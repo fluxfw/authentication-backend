@@ -85,7 +85,7 @@ export class HandleAuthenticationCommand {
         request._userInfos = null;
 
         try {
-            const cookie = request.getHeader(
+            const cookie = request.header(
                 HEADER_COOKIE
             );
 
@@ -124,14 +124,14 @@ export class HandleAuthenticationCommand {
         }
 
         if (request._userInfos === null) {
-            if (request.getHeader(
+            if (request.header(
                 HEADER_ACCEPT
             )?.includes(CONTENT_TYPE_HTML) ?? false) {
-                return HttpResponse.newFromRedirect(
+                return HttpResponse.redirect(
                     `${authentication_base_route}/login`
                 );
             } else {
-                return HttpResponse.newFromText(
+                return HttpResponse.text(
                     "Authorization needed",
                     STATUS_401
                 );
@@ -139,7 +139,7 @@ export class HandleAuthenticationCommand {
         }
 
         if (request.url.pathname === api_route) {
-            return HttpResponse.newFromRedirect(
+            return HttpResponse.redirect(
                 authentication_success_url
             );
         }
