@@ -1,7 +1,7 @@
 /** @typedef {import("../../Service/Authentication/Port/AuthenticationService.mjs").AuthenticationService} AuthenticationService */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
-/** @typedef {import("../../../../flux-http-api/src/Adapter/Request/HttpRequest.mjs").HttpRequest} HttpRequest */
-/** @typedef {import("../../../../flux-http-api/src/Adapter/Response/HttpResponse.mjs").HttpResponse} HttpResponse */
+/** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
 
 export class AuthenticationBackendApi {
     /**
@@ -45,11 +45,11 @@ export class AuthenticationBackendApi {
     }
 
     /**
-     * @param {HttpRequest} request
+     * @param {HttpServerRequest} request
      * @param {string} authentication_base_route
      * @param {string} api_route
      * @param {string} authentication_success_url
-     * @returns {Promise<HttpResponse | null>}
+     * @returns {Promise<HttpServerResponse | null>}
      */
     async handleAuthentication(request, authentication_base_route, api_route, authentication_success_url) {
         return (await this.#getAuthenticationService()).handleAuthentication(
