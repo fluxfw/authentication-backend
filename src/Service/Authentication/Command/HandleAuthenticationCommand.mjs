@@ -94,7 +94,7 @@ export class HandleAuthenticationCommand {
                 if (this.#user_infos_cache.has(cookie)) {
                     request._userInfos = this.#user_infos_cache.get(cookie);
                 } else {
-                    const response = await this.#http_api.fetch(
+                    const response = await this.#http_api.request(
                         HttpClientRequest.new(
                             `${open_id_connect_rest_api_url}/userinfos`,
                             null,
@@ -127,18 +127,20 @@ export class HandleAuthenticationCommand {
         }
 
         if (request._userInfos === null) {
+            const frontend_url = `${authentication_base_route}/login`;
+
             if (request.header(
                 HEADER_ACCEPT
             )?.includes(CONTENT_TYPE_HTML) ?? false) {
                 return HttpServerResponse.redirect(
-                    `${authentication_base_route}/login`
+                    frontend_url
                 );
             } else {
                 return HttpServerResponse.text(
                     "Authorization needed",
                     STATUS_CODE_401,
                     {
-                        [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: `${authentication_base_route}/login`
+                        [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: frontend_url
                     }
                 );
             }
