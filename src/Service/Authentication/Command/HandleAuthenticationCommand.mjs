@@ -1,9 +1,9 @@
 import { AUTHENTICATION_BACKEND_DEFAULT_OPEN_ID_CONNECT_REST_API_URL } from "../../../Adapter/Authentication/AUTHENTICATION_BACKEND.mjs";
 import { HttpClientRequest } from "../../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
-import { STATUS_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS.mjs";
+import { STATUS_CODE_401 } from "../../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
-import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
+import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
@@ -136,7 +136,10 @@ export class HandleAuthenticationCommand {
             } else {
                 return HttpServerResponse.text(
                     "Authorization needed",
-                    STATUS_401
+                    STATUS_CODE_401,
+                    {
+                        [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: `${authentication_base_route}/login`
+                    }
                 );
             }
         }
