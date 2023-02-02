@@ -96,7 +96,7 @@ export class HandleAuthenticationCommand {
                 } else {
                     const response = await this.#http_api.request(
                         HttpClientRequest.new(
-                            `${open_id_connect_rest_api_url}/userinfos`,
+                            new URL(`${open_id_connect_rest_api_url}/userinfos`),
                             null,
                             null,
                             {
