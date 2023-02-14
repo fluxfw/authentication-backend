@@ -1,62 +1,43 @@
+/** @typedef {import("../AuthenticationImplementation/AuthenticationImplementation.mjs").AuthenticationImplementation} AuthenticationImplementation */
 /** @typedef {import("../../Service/Authentication/Port/AuthenticationService.mjs").AuthenticationService} AuthenticationService */
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
 
 export class AuthenticationBackendApi {
     /**
+     * @type {AuthenticationImplementation}
+     */
+    #authentication_implementation;
+    /**
      * @type {AuthenticationService | null}
      */
     #authentication_service = null;
-    /**
-     * @type {HttpApi}
-     */
-    #http_api;
-    /**
-     * @type {string | null}
-     */
-    #open_id_connect_rest_api_url;
-    /**
-     * @type {Map}
-     */
-    #user_infos_cache;
 
     /**
-     * @param {HttpApi} http_api
-     * @param {string | null} open_id_connect_rest_api_url
+     * @param {AuthenticationImplementation} authentication_implementation
      * @returns {AuthenticationBackendApi}
      */
-    static new(http_api, open_id_connect_rest_api_url = null) {
+    static new(authentication_implementation) {
         return new this(
-            http_api,
-            open_id_connect_rest_api_url
+            authentication_implementation
         );
     }
 
     /**
-     * @param {HttpApi} http_api
-     * @param {string | null} open_id_connect_rest_api_url
+     * @param {AuthenticationImplementation} authentication_implementation
      * @private
      */
-    constructor(http_api, open_id_connect_rest_api_url) {
-        this.#http_api = http_api;
-        this.#open_id_connect_rest_api_url = open_id_connect_rest_api_url;
-        this.#user_infos_cache = new Map();
+    constructor(authentication_implementation) {
+        this.#authentication_implementation = authentication_implementation;
     }
 
     /**
      * @param {HttpServerRequest} request
-     * @param {string} authentication_base_route
-     * @param {string} api_route
-     * @param {string} authentication_success_url
      * @returns {Promise<HttpServerResponse | null>}
      */
-    async handleAuthentication(request, authentication_base_route, api_route, authentication_success_url) {
+    async handleAuthentication(request) {
         return (await this.#getAuthenticationService()).handleAuthentication(
-            request,
-            authentication_base_route,
-            api_route,
-            authentication_success_url
+            request
         );
     }
 
@@ -65,9 +46,7 @@ export class AuthenticationBackendApi {
      */
     async #getAuthenticationService() {
         this.#authentication_service ??= (await import("../../Service/Authentication/Port/AuthenticationService.mjs")).AuthenticationService.new(
-            this.#http_api,
-            this.#user_infos_cache,
-            this.#open_id_connect_rest_api_url
+            this.#authentication_implementation
         );
 
         return this.#authentication_service;

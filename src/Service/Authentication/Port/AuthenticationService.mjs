@@ -1,65 +1,41 @@
-/** @typedef {import("../../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
+/** @typedef {import("../../../Adapter/AuthenticationImplementation/AuthenticationImplementation.mjs").AuthenticationImplementation} AuthenticationImplementation */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
 
 export class AuthenticationService {
     /**
-     * @type {HttpApi}
+     * @type {AuthenticationImplementation}
      */
-    #http_api;
-    /**
-     * @type {string | null}
-     */
-    #open_id_connect_rest_api_url;
-    /**
-     * @type {Map}
-     */
-    #user_infos_cache;
+    #authentication_implementation;
 
     /**
-     * @param {HttpApi} http_api
-     * @param {Map} user_infos_cache
-     * @param {string | null} open_id_connect_rest_api_url
+     * @param {AuthenticationImplementation} authentication_implementation
      * @returns {AuthenticationService}
      */
-    static new(http_api, user_infos_cache, open_id_connect_rest_api_url = null) {
+    static new(authentication_implementation) {
         return new this(
-            http_api,
-            user_infos_cache,
-            open_id_connect_rest_api_url
+            authentication_implementation
         );
     }
 
     /**
-     * @param {HttpApi} http_api
-     * @param {Map} user_infos_cache
-     * @param {string | null} open_id_connect_rest_api_url
+     * @param {AuthenticationImplementation} authentication_implementation
      * @private
      */
-    constructor(http_api, user_infos_cache, open_id_connect_rest_api_url) {
-        this.#http_api = http_api;
-        this.#user_infos_cache = user_infos_cache;
-        this.#open_id_connect_rest_api_url = open_id_connect_rest_api_url;
+    constructor(authentication_implementation) {
+        this.#authentication_implementation = authentication_implementation;
     }
 
     /**
      * @param {HttpServerRequest} request
-     * @param {string} authentication_base_route
-     * @param {string} api_route
-     * @param {string} authentication_success_url
      * @returns {Promise<HttpServerResponse | null>}
      */
-    async handleAuthentication(request, authentication_base_route, api_route, authentication_success_url) {
+    async handleAuthentication(request) {
         return (await import("../Command/HandleAuthenticationCommand.mjs")).HandleAuthenticationCommand.new(
-            this.#http_api,
-            this.#user_infos_cache,
-            this.#open_id_connect_rest_api_url
+            this.#authentication_implementation
         )
             .handleAuthentication(
-                request,
-                authentication_base_route,
-                api_route,
-                authentication_success_url
+                request
             );
     }
 }

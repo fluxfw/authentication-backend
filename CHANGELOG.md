@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2023-02-14-1
+
+Changes:
+
+- Split to `AuthenticationImplementation`
+- `BasicAuthenticationImplementation`
+
 ## v2023-02-09-1
 
 Changes:
