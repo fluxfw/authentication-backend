@@ -39,16 +39,16 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
      * @param {HttpApi} http_api
      * @param {string} authentication_base_route
      * @param {string} api_route
-     * @param {string} authentication_success_url
+     * @param {string | null} authentication_success_url
      * @param {string | null} open_id_connect_rest_api_url
      * @returns {OpenIdConnectRestApiProxyAuthenticationImplementation}
      */
-    static new(http_api, authentication_base_route, api_route, authentication_success_url, open_id_connect_rest_api_url = null) {
+    static new(http_api, authentication_base_route, api_route, authentication_success_url = null, open_id_connect_rest_api_url = null) {
         return new this(
             http_api,
             authentication_base_route,
             api_route,
-            authentication_success_url,
+            authentication_success_url ?? "/Libs/flux-authentication-frontend-api/src/Adapter/Authentication/AuthenticationSuccess.html",
             open_id_connect_rest_api_url ?? OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_OPEN_ID_CONNECT_REST_API_URL
         );
     }

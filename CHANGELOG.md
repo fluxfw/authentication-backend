@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-02-14-2
+
+Changes:
+
+- Default `authentication_success_url`
+
 ## v2023-02-14-1
 
 Changes:
