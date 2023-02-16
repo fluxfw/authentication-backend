@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-02-16-1
+
+Changes:
+
+- `OpenIdConnectAuthenticationImplementation`
+
 ## v2023-02-14-2
 
 Changes:
