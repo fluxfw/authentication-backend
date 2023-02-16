@@ -104,82 +104,79 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
         const cookie = request.header(
             HEADER_COOKIE
         );
+        if (cookie !== null && this.#user_infos_cache.has(cookie)) {
+            user_infos = this.#user_infos_cache.get(cookie);
+        } else {
+            const response = await this.#http_api.request(
+                HttpClientRequest.new(
+                    new URL(`${this.#url}${this.#base_route}/user-infos`),
+                    null,
+                    null,
+                    [
+                        HEADER_ACCEPT,
+                        HEADER_COOKIE
+                    ].reduce((headers, key) => {
+                        const value = request.header(
+                            key
+                        );
 
-        if (cookie !== null) {
-            if (this.#user_infos_cache.has(cookie)) {
-                user_infos = this.#user_infos_cache.get(cookie);
-            } else {
-                const response = await this.#http_api.request(
-                    HttpClientRequest.new(
-                        new URL(`${this.#url}${this.#base_route}/user-infos`),
-                        null,
-                        null,
-                        [
-                            HEADER_ACCEPT,
-                            HEADER_COOKIE
-                        ].reduce((headers, key) => {
-                            const value = request.header(
-                                key
-                            );
-
-                            if (value === null) {
-                                return headers;
-                            }
-
-                            headers[key] = value;
-
+                        if (value === null) {
                             return headers;
-                        }, {}),
-                        false,
-                        null,
-                        false
-                    )
+                        }
+
+                        headers[key] = value;
+
+                        return headers;
+                    }, {}),
+                    false,
+                    null,
+                    false
+                )
+            );
+
+            for (const key of [
+                HEADER_SET_COOKIE
+            ]) {
+                const value = response.header(
+                    key
                 );
 
-                for (const key of [
-                    HEADER_SET_COOKIE
-                ]) {
-                    const value = response.header(
-                        key
-                    );
-
-                    if (value === null) {
-                        continue;
-                    }
-
-                    request._res?.setHeader(key, value);
+                if (value === null) {
+                    continue;
                 }
 
-                if (response.status_code === STATUS_CODE_302 || response.status_code === STATUS_CODE_401) {
-                    return HttpServerResponse.new(
-                        response.body,
-                        response.status_code,
-                        [
-                            HEADER_CONTENT_TYPE,
-                            HEADER_LOCATION,
-                            HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL
-                        ].reduce((headers, key) => {
-                            const value = response.header(
-                                key
-                            );
-
-                            if (value === null) {
-                                return headers;
-                            }
-
-                            headers[key] = value;
-
-                            return headers;
-                        }, {})
-                    );
-                }
-
-                if (!response.status_code_is_ok) {
-                    return Promise.reject(response);
-                }
-
-                this.#user_infos_cache.set(cookie, user_infos = await response.body.json());
+                request._res?.setHeader(key, value);
             }
+
+            if (response.status_code === STATUS_CODE_302 || response.status_code === STATUS_CODE_401) {
+                return HttpServerResponse.new(
+                    response.body,
+                    response.status_code,
+                    [
+                        HEADER_CONTENT_TYPE,
+                        HEADER_LOCATION,
+                        HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL
+                    ].reduce((headers, key) => {
+                        const value = response.header(
+                            key
+                        );
+
+                        if (value === null) {
+                            return headers;
+                        }
+
+                        headers[key] = value;
+
+                        return headers;
+                    }, {})
+                );
+            }
+
+            if (!response.status_code_is_ok) {
+                return Promise.reject(response);
+            }
+
+            this.#user_infos_cache.set(cookie, user_infos = await response.body.json());
         }
 
         request._user_infos = user_infos;
