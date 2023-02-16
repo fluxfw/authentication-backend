@@ -507,17 +507,17 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         for (const [
             key,
             value
-        ] of {
-                client_id: this.#provider_client_id,
-                redirect_uri: this.#getProviderRedirectUri(
-                    request
-                ),
-                response_type: OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE,
-                state,
-                scope: this.#provider_scope,
-                code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
-                code_challenge: Buffer.from(await crypto.subtle.digest(ALGORITHM_SHA_256, new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, "")
-            }) {
+        ] of Object.entries({
+            client_id: this.#provider_client_id,
+            redirect_uri: this.#getProviderRedirectUri(
+                request
+            ),
+            response_type: OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE,
+            state,
+            scope: this.#provider_scope,
+            code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
+            code_challenge: Buffer.from(await crypto.subtle.digest(ALGORITHM_SHA_256, new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, "")
+        })) {
             location.searchParams.append(key, value);
         }
 
