@@ -4,7 +4,7 @@ import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
+import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
@@ -239,6 +239,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request,
             [
                 METHOD_GET,
+                METHOD_HEAD,
                 METHOD_OPTIONS
             ]
         );
@@ -480,6 +481,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request,
             [
                 METHOD_GET,
+                METHOD_HEAD,
                 METHOD_OPTIONS
             ]
         );
@@ -544,6 +546,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request,
             [
                 METHOD_GET,
+                METHOD_HEAD,
                 METHOD_OPTIONS
             ]
         );
@@ -586,7 +589,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
         const response = await this.#http_api.request(
             HttpClientRequest.new(
-                new URL(provider_config.user_info_endpoint),
+                new URL(provider_config.userinfo_endpoint),
                 null,
                 null,
                 {
@@ -645,7 +648,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return [
                 await (await this.#http_api.request(
                     HttpClientRequest.new(
-                        new URL(provider_config.user_info_endpoint),
+                        new URL(provider_config.userinfo_endpoint),
                         null,
                         null,
                         {

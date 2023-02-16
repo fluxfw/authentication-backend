@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-02-16-3
+
+Changes:
+
+- Fix user infos
+
 ## v2023-02-16-2
 
 Changes:
