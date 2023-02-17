@@ -5,7 +5,7 @@ import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
-import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
+import { OPEN_ID_CONNECT_COOKIE_KEY_PLAIN, OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
@@ -21,7 +21,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      */
     #cookie_crypto_key = null;
     /**
-     * @type {string | null}
+     * @type {string}
      */
     #cookie_key;
     /**
@@ -29,17 +29,13 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      */
     #cookie_name;
     /**
-     * @type {{[key: string]: *} | null}
+     * @type {string}
      */
-    #cookie_options;
+    #frontend_base_route;
     /**
      * @type {HttpApi}
      */
     #http_api;
-    /**
-     * @type {string | null}
-     */
-    #provider_certificate;
     /**
      * @type {string}
      */
@@ -55,6 +51,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
     /**
      * @type {string | null}
      */
+    #provider_https_certificate;
+    /**
+     * @type {string | null}
+     */
     #provider_redirect_uri;
     /**
      * @type {string}
@@ -67,11 +67,15 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
     /**
      * @type {string}
      */
-    #redirect_login_url;
+    #redirect_after_login_url;
     /**
      * @type {string}
      */
-    #redirect_logout_url;
+    #redirect_after_logout_url;
+    /**
+     * @type {{[key: string]: *} | null}
+     */
+    #set_cookie_options;
     /**
      * @type {Map}
      */
@@ -82,32 +86,34 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
+     * @param {string} cookie_key
      * @param {string | null} provider_redirect_uri
      * @param {string | null} provider_scope
-     * @param {string | null} provider_certificate
+     * @param {string | null} provider_https_certificate
      * @param {string | null} cookie_name
-     * @param {string | null} cookie_key
-     * @param {{[key: string]: *} | null} cookie_options
+     * @param {{[key: string]: *} | null} set_cookie_options
      * @param {string | null} base_route
-     * @param {string | null} redirect_login_url
-     * @param {string | null} redirect_logout_url
+     * @param {string | null} frontend_base_route
+     * @param {string | null} redirect_after_login_url
+     * @param {string | null} redirect_after_logout_url
      * @returns {OpenIdConnectAuthenticationImplementation}
      */
-    static new(http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_certificate = null, cookie_name = null, cookie_key = null, cookie_options = null, base_route = null, redirect_login_url = null, redirect_logout_url = null) {
+    static new(http_api, provider_url, provider_client_id, provider_client_secret, cookie_key, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         return new this(
             http_api,
             provider_url,
             provider_client_id,
             provider_client_secret,
+            cookie_key,
             provider_redirect_uri,
             provider_scope ?? OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE,
-            provider_certificate,
+            provider_https_certificate,
             cookie_name ?? OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME,
-            cookie_key,
-            cookie_options,
+            set_cookie_options,
             base_route ?? OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE,
-            redirect_login_url ?? OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGIN_URL,
-            redirect_logout_url ?? OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGOUT_URL
+            frontend_base_route ?? base_route ?? OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE,
+            redirect_after_login_url ?? OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL,
+            redirect_after_logout_url ?? OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL
         );
     }
 
@@ -116,33 +122,35 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
+     * @param {string} cookie_key
      * @param {string | null} provider_redirect_uri
      * @param {string} provider_scope
-     * @param {string | null} provider_certificate
+     * @param {string | null} provider_https_certificate
      * @param {string} cookie_name
-     * @param {string | null} cookie_key
-     * @param {{[key: string]: *} | null} cookie_options
+     * @param {{[key: string]: *} | null} set_cookie_options
      * @param {string} base_route
-     * @param {string} redirect_login_url
-     * @param {string} redirect_logout_url
+     * @param {string} frontend_base_route
+     * @param {string} redirect_after_login_url
+     * @param {string} redirect_after_logout_url
      * @private
      */
-    constructor(http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_certificate, cookie_name, cookie_key, cookie_options, base_route, redirect_login_url, redirect_logout_url) {
+    constructor(http_api, provider_url, provider_client_id, provider_client_secret, cookie_key, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
         super();
 
         this.#http_api = http_api;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;
         this.#provider_client_secret = provider_client_secret;
+        this.#cookie_key = cookie_key;
         this.#provider_redirect_uri = provider_redirect_uri;
         this.#provider_scope = provider_scope;
-        this.#provider_certificate = provider_certificate;
+        this.#provider_https_certificate = provider_https_certificate;
         this.#cookie_name = cookie_name;
-        this.#cookie_key = cookie_key;
-        this.#cookie_options = cookie_options;
+        this.#set_cookie_options = set_cookie_options;
         this.#base_route = base_route;
-        this.#redirect_login_url = redirect_login_url;
-        this.#redirect_logout_url = redirect_logout_url;
+        this.#frontend_base_route = frontend_base_route;
+        this.#redirect_after_login_url = redirect_after_login_url;
+        this.#redirect_after_logout_url = redirect_after_logout_url;
         this.#user_infos_cache = new Map();
     }
 
@@ -151,19 +159,19 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @returns {Promise<HttpServerResponse | null>}
      */
     async handleAuthentication(request) {
-        if (request.url.pathname === `${this.#base_route}/callback`) {
+        if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/callback`) {
             return this.#callback(
                 request
             );
         }
 
-        if (request.url.pathname === `${this.#base_route}/login`) {
+        if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/login`) {
             return this.#login(
                 request
             );
         }
 
-        if (request.url.pathname === `${this.#base_route}/logout`) {
+        if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/logout`) {
             return this.#logout(
                 request
             );
@@ -206,20 +214,20 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         }
 
         if (user_infos === null) {
-            const login_url = `${this.#base_route}/login`;
+            const frontend_url = `${this.#frontend_base_route !== "/" ? this.#frontend_base_route : ""}/login`;
 
             if (request.header(
                 HEADER_ACCEPT
             )?.includes(CONTENT_TYPE_HTML) ?? false) {
                 return HttpServerResponse.redirect(
-                    login_url
+                    frontend_url
                 );
             } else {
                 return HttpServerResponse.text(
                     "Authorization needed",
                     STATUS_CODE_401,
                     {
-                        [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: login_url
+                        [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: frontend_url
                     }
                 );
             }
@@ -302,7 +310,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     null,
                     null,
                     null,
-                    this.#provider_certificate
+                    this.#provider_https_certificate
                 )
             )).body.json();
 
@@ -337,7 +345,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         }
 
         return HttpServerResponse.redirect(
-            this.#redirect_login_url,
+            this.#redirect_after_login_url,
             null,
             null,
             await this.#encyptSession(
@@ -366,7 +374,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         const encrypted_session = atob(_encoded_session);
 
         let encoded_session;
-        if (this.#cookie_key !== null) {
+        if (this.#cookie_key !== OPEN_ID_CONNECT_COOKIE_KEY_PLAIN) {
             const [
                 session,
                 iv
@@ -399,7 +407,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return {
                 [this.#cookie_name]: {
                     value: null,
-                    options: this.#cookie_options
+                    options: this.#set_cookie_options
                 }
             };
         }
@@ -407,7 +415,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         const encoded_session = new TextEncoder().encode(JSON.stringify(session));
 
         let encrypted_session;
-        if (this.#cookie_key !== null) {
+        if (this.#cookie_key !== OPEN_ID_CONNECT_COOKIE_KEY_PLAIN) {
             const iv = crypto.getRandomValues(new Uint8Array(16));
 
             encrypted_session = [
@@ -424,7 +432,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         return {
             [this.#cookie_name]: {
                 value: btoa(encrypted_session),
-                options: this.#cookie_options
+                options: this.#set_cookie_options
             }
         };
     }
@@ -457,7 +465,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 null,
                 null,
                 null,
-                this.#provider_certificate
+                this.#provider_https_certificate
             )
         )).body.json();
 
@@ -469,7 +477,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @returns {string}
      */
     #getProviderRedirectUri(request) {
-        return this.#provider_redirect_uri ?? `${request.url.origin}${this.#base_route}/callback`;
+        return this.#provider_redirect_uri ?? `${request.url.origin}${this.#frontend_base_route !== "/" ? this.#frontend_base_route : ""}/callback`;
     }
 
     /**
@@ -556,7 +564,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         }
 
         return HttpServerResponse.redirect(
-            this.#redirect_logout_url,
+            this.#redirect_after_logout_url,
             null,
             null,
             await this.#encyptSession(
@@ -599,7 +607,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 null,
                 null,
                 false,
-                this.#provider_certificate
+                this.#provider_https_certificate
             )
         );
 
@@ -625,7 +633,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     null,
                     null,
                     null,
-                    this.#provider_certificate
+                    this.#provider_https_certificate
                 )
             )).body.json();
 
@@ -658,7 +666,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                         null,
                         null,
                         null,
-                        this.#provider_certificate
+                        this.#provider_https_certificate
                     )
                 )).body.json(),
                 await this.#encyptSession(

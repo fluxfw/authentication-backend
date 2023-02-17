@@ -1,7 +1,7 @@
 import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
 import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
-import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
+import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_URL } from "../OpenIdConnectRestApiProxy/OPEN_ID_CONNECT_REST_API_PROXY.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
@@ -66,7 +66,7 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
             "login",
             "logout"
         ]) {
-            if (request.url.pathname === `${this.#base_route}/${route}`) {
+            if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/${route}`) {
                 const response = await this.#http_api.validateMethods(
                     request,
                     [
@@ -82,12 +82,13 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
 
                 return this.#http_api.proxyRequest(
                     {
-                        url: `${this.#url}${request.url.pathname}`,
+                        url: `${this.#url}/api/${route}`,
                         request,
-                        request_query_params: true,
+                        request_query_params: route === "callback",
                         request_headers: [
                             HEADER_COOKIE
                         ],
+                        request_forwarded_headers: true,
                         response_redirect: true,
                         response_headers: [
                             HEADER_CONTENT_TYPE,
@@ -109,25 +110,29 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
         } else {
             const response = await this.#http_api.request(
                 HttpClientRequest.new(
-                    new URL(`${this.#url}${this.#base_route}/user-infos`),
+                    new URL(`${this.#url}/api/user-infos`),
                     null,
                     null,
-                    [
-                        HEADER_ACCEPT,
-                        HEADER_COOKIE
-                    ].reduce((headers, key) => {
-                        const value = request.header(
-                            key
-                        );
+                    {
+                        ...[
+                            HEADER_ACCEPT,
+                            HEADER_COOKIE
+                        ].reduce((headers, key) => {
+                            const value = request.header(
+                                key
+                            );
 
-                        if (value === null) {
+                            if (value === null) {
+                                return headers;
+                            }
+
+                            headers[key] = value;
+
                             return headers;
-                        }
-
-                        headers[key] = value;
-
-                        return headers;
-                    }, {}),
+                        }, {}),
+                        [HEADER_X_FORWARDED_HOST]: request.url.host,
+                        [HEADER_X_FORWARDED_PROTO]: request.url.protocol.slice(0, -1)
+                    },
                     false,
                     null,
                     false
@@ -168,7 +173,9 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
                         headers[key] = value;
 
                         return headers;
-                    }, {})
+                    }, {}),
+                    null,
+                    response.status_message
                 );
             }
 

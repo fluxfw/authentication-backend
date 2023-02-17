@@ -10,8 +10,12 @@ export const OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE = "/api/authentication";
 
 export const OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME = "authentication";
 
+export const OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE = OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE;
+
 export const OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE = "openid profile email";
 
-export const OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGIN_URL = "/Libs/flux-authentication-frontend-api/src/Adapter/Authentication/AuthenticationSuccess.html";
+export const OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL = "/Libs/flux-authentication-frontend-api/src/Adapter/Authentication/AuthenticationSuccess.html";
 
-export const OPEN_ID_CONNECT_DEFAULT_REDIRECT_LOGOUT_URL = "/";
+export const OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL = "/";
+
+export const OPEN_ID_CONNECT_COOKIE_KEY_PLAIN = "plain";
