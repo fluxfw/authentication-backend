@@ -1,4 +1,3 @@
-import { ALGORITHM_SHA_256 } from "../../../../flux-hash-api/src/Adapter/Algorithm/ALGORITHM.mjs";
 import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
 import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
@@ -526,7 +525,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             state,
             scope: this.#provider_scope,
             code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
-            code_challenge: Buffer.from(await crypto.subtle.digest(ALGORITHM_SHA_256, new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, "")
+            code_challenge: Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, "")
         })) {
             location.searchParams.append(key, value);
         }
