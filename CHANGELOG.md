@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-02-20-1
+
+Changes:
+
+- `flux-open-id-connect-authentication-backend`
+
 ## v2023-02-17-2
 
 Changes:

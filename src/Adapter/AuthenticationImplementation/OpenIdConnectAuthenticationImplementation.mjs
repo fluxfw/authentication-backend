@@ -238,6 +238,19 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
     }
 
     /**
+     * @returns {Promise<string>}
+     */
+    async generateCookieKey() {
+        return Buffer.from(await crypto.subtle.exportKey("raw", await crypto.subtle.generateKey({
+            name: "AES-CBC",
+            length: 256
+        }, true, [
+            "encrypt",
+            "decrypt"
+        ]))).toString("hex");
+    }
+
+    /**
      * @param {HttpServerRequest} request
      * @returns {Promise<HttpServerResponse>}
      */

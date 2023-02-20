@@ -3,13 +3,13 @@ import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
-import { OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_URL } from "../OpenIdConnectRestApiProxy/OPEN_ID_CONNECT_REST_API_PROXY.mjs";
+import { OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_URL } from "../OpenIdConnectAuthenticationBackendProxy/OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 
-export class OpenIdConnectRestApiProxyAuthenticationImplementation extends AuthenticationImplementation {
+export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation extends AuthenticationImplementation {
     /**
      * @type {string}
      */
@@ -31,13 +31,13 @@ export class OpenIdConnectRestApiProxyAuthenticationImplementation extends Authe
      * @param {HttpApi} http_api
      * @param {string | null} base_route
      * @param {string | null} url
-     * @returns {OpenIdConnectRestApiProxyAuthenticationImplementation}
+     * @returns {OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation}
      */
     static new(http_api, base_route = null, url = null) {
         return new this(
             http_api,
-            base_route ?? OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_BASE_ROUTE,
-            url ?? OPEN_ID_CONNECT_REST_API_PROXY_DEFAULT_URL
+            base_route ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_BASE_ROUTE,
+            url ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_URL
         );
     }
 
