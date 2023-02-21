@@ -447,10 +447,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             [this.#cookie_name]: {
                 value: btoa(encrypted_session),
                 options: {
+                    ...this.#set_cookie_options,
                     ...max_age !== null ? {
                         [SET_COOKIE_OPTION_MAX_AGE]: set_cookie_max_age === SET_COOKIE_OPTION_MAX_AGE_SESSION ? SET_COOKIE_OPTION_MAX_AGE_SESSION : set_cookie_max_age !== null ? Math.min(max_age, set_cookie_max_age) : max_age
-                    } : null,
-                    ...this.#set_cookie_options
+                    } : null
                 }
             }
         };
