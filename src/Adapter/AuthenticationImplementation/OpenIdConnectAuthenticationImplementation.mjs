@@ -155,7 +155,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
      */
     async handleAuthentication(request) {
         if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/callback`) {
@@ -232,9 +232,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             }
         }
 
-        request._user_infos = user_infos;
-
-        return null;
+        return user_infos;
     }
 
     /**

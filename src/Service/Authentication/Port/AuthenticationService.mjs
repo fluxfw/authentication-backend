@@ -28,7 +28,7 @@ export class AuthenticationService {
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
      */
     async handleAuthentication(request) {
         return (await import("../Command/HandleAuthenticationCommand.mjs")).HandleAuthenticationCommand.new(

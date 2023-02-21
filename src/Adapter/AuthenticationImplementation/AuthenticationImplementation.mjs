@@ -7,7 +7,7 @@
 export class AuthenticationImplementation {
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
      * @abstract
      */
     handleAuthentication(request) { }

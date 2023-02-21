@@ -42,7 +42,7 @@ export class BasicAuthenticationImplementation extends AuthenticationImplementat
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
      */
     async handleAuthentication(request) {
         const authorization_parameters = await this.#http_api.getAuthorizationParameters(
@@ -93,8 +93,8 @@ export class BasicAuthenticationImplementation extends AuthenticationImplementat
             );
         }
 
-        request._user_name = user_name;
-
-        return null;
+        return {
+            "user-name": user_name
+        };
     }
 }

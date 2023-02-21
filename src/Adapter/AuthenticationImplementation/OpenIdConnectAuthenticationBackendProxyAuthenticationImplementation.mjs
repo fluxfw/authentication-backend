@@ -58,7 +58,7 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | null>}
+     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
      */
     async handleAuthentication(request) {
         for (const route of [
@@ -186,8 +186,6 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
             this.#user_infos_cache.set(cookie, user_infos = await response.body.json());
         }
 
-        request._user_infos = user_infos;
-
-        return null;
+        return user_infos;
     }
 }
