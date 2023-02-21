@@ -4,7 +4,8 @@ import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
-import { OPEN_ID_CONNECT_COOKIE_KEY_PLAIN, OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
+import { OPEN_ID_CONNECT_COOKIE_KEY_PLAIN, OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
+import { SET_COOKIE_OPTION_MAX_AGE, SET_COOKIE_OPTION_MAX_AGE_SESSION } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
@@ -266,7 +267,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return response;
         }
 
-        let token_type, access_token, refresh_token;
+        let token_type, access_token, expires_in;
         try {
             const session = await this.#decryptSession(
                 request
@@ -336,9 +337,9 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
             token_type = token.token_type ?? null;
             access_token = token.access_token ?? null;
-            refresh_token = token.refresh_token ?? null;
+            expires_in = token.expires_in ?? null;
 
-            if (token_type === null || access_token === null) {
+            if (token_type === null || access_token === null || expires_in === null) {
                 throw new Error("Invalid access token");
             }
         } catch (error) {
@@ -361,9 +362,9 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             await this.#encyptSession(
                 request,
                 {
-                    authorization: `${token_type} ${access_token}`,
-                    refresh_token
-                }
+                    authorization: `${token_type} ${access_token}`
+                },
+                expires_in
             )
         );
     }
@@ -404,9 +405,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
     /**
      * @param {HttpServerRequest} request
      * @param {{[key: string]: *} | null} session
+     * @param {number | null} max_age
      * @returns {Promise<{[key: string]: {value: string | null, options: {[key: string]: *} | null}} | null>}
      */
-    async #encyptSession(request, session = null) {
+    async #encyptSession(request, session = null, max_age = null) {
         if (session === null) {
             if (request.cookie(
                 this.#cookie_name
@@ -439,10 +441,17 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             encrypted_session = Buffer.from(encoded_session).toString("hex");
         }
 
+        const set_cookie_max_age = this.#set_cookie_options?.[SET_COOKIE_OPTION_MAX_AGE] ?? null;
+
         return {
             [this.#cookie_name]: {
                 value: btoa(encrypted_session),
-                options: this.#set_cookie_options
+                options: {
+                    ...max_age !== null ? {
+                        [SET_COOKIE_OPTION_MAX_AGE]: set_cookie_max_age === SET_COOKIE_OPTION_MAX_AGE_SESSION ? SET_COOKIE_OPTION_MAX_AGE_SESSION : set_cookie_max_age !== null ? Math.min(max_age, set_cookie_max_age) : max_age
+                    } : null,
+                    ...this.#set_cookie_options
+                }
             }
         };
     }
@@ -592,7 +601,6 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request
         );
         const authorization = session?.authorization ?? null;
-        const refresh_token = session?.refresh_token ?? null;
 
         if (authorization === null) {
             return [
@@ -603,98 +611,22 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             ];
         }
 
-        const provider_config = await this.#getProviderConfig();
-
-        const response = await this.#http_api.request(
-            HttpClientRequest.new(
-                new URL(provider_config.userinfo_endpoint),
-                null,
-                null,
-                {
-                    [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
-                    [HEADER_AUTHORIZATION]: authorization
-                },
-                null,
-                null,
-                false,
-                this.#provider_https_certificate
-            )
-        );
-
-        if (response.status_code === STATUS_CODE_401 && refresh_token !== null) {
-            if (!provider_config.grant_types_supported.includes(OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN)) {
-                throw new Error(`Provider does not supports grant type ${OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN}`);
-            }
-
-            const token = await (await this.#http_api.request(
-                HttpClientRequest.json(
-                    new URL(provider_config.token_endpoint),
-                    {
-                        client_id: this.#provider_client_id,
-                        client_secret: this.#provider_client_secret,
-                        grant_type: OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_REFRESH_TOKEN,
-                        refresh_token,
-                        redirect_uri: this.#getProviderRedirectUri(
-                            request
-                        )
-                    },
-                    METHOD_POST,
+        return [
+            await (await this.#http_api.request(
+                HttpClientRequest.new(
+                    new URL((await this.#getProviderConfig()).userinfo_endpoint),
                     null,
+                    null,
+                    {
+                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
+                        [HEADER_AUTHORIZATION]: authorization
+                    },
                     null,
                     null,
                     null,
                     this.#provider_https_certificate
                 )
-            )).body.json();
-
-            if ((token.error_description ?? null) !== null) {
-                throw new Error(token.error_description);
-            }
-            if ((token.error ?? null) !== null) {
-                throw new Error(token.error);
-            }
-            if ((token.message ?? null) !== null) {
-                throw new Error(token.message);
-            }
-
-            if ((token.token_type ?? null) === null || (token.access_token ?? null) === null) {
-                throw new Error("Invalid access token");
-            }
-
-            const _authorization = `${token.token_type} ${token.access_token}`;
-
-            return [
-                await (await this.#http_api.request(
-                    HttpClientRequest.new(
-                        new URL(provider_config.userinfo_endpoint),
-                        null,
-                        null,
-                        {
-                            [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
-                            [HEADER_AUTHORIZATION]: _authorization
-                        },
-                        null,
-                        null,
-                        null,
-                        this.#provider_https_certificate
-                    )
-                )).body.json(),
-                await this.#encyptSession(
-                    request,
-                    {
-                        authorization: _authorization,
-                        refresh_token: token.refresh_token ?? null
-                    }
-                )
-            ];
-        }
-
-        if (!response.status_code_is_ok) {
-            return Promise.reject(response);
-        }
-
-        return [
-            await response.body.json(),
+            )).body.json(),
             null
         ];
     }

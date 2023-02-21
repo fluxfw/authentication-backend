@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2023-02-21-2
+
+Changes:
+
+- Set cookie max date based on `expires_in`
+- Default scope to `openid`
+- Remove `refresh_token`
+
 ## v2023-02-21-1
 
 Changes:
