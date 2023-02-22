@@ -5,6 +5,7 @@ import { STATUS_CODE_400, STATUS_CODE_403 } from "../../../../flux-http-api/src/
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../UserInfo/UserInfo.mjs").UserInfo} UserInfo */
 
 export class BasicAuthenticationImplementation extends AuthenticationImplementation {
     /**
@@ -42,7 +43,7 @@ export class BasicAuthenticationImplementation extends AuthenticationImplementat
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
+     * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
         const authorization_parameters = await this.#http_api.getAuthorizationParameters(

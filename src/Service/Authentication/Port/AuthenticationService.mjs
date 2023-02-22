@@ -1,6 +1,7 @@
 /** @typedef {import("../../../Adapter/AuthenticationImplementation/AuthenticationImplementation.mjs").AuthenticationImplementation} AuthenticationImplementation */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
+/** @typedef {import("../../../Adapter/UserInfo/UserInfo.mjs").UserInfo} UserInfo */
 
 export class AuthenticationService {
     /**
@@ -28,7 +29,7 @@ export class AuthenticationService {
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
+     * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
         return (await import("../Command/HandleAuthenticationCommand.mjs")).HandleAuthenticationCommand.new(

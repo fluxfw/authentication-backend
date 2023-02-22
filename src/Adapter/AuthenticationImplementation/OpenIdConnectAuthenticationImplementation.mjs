@@ -1,29 +1,22 @@
 import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
 import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
+import { SET_COOKIE_OPTION_MAX_AGE } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
-import { OPEN_ID_CONNECT_COOKIE_KEY_PLAIN, OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
-import { SET_COOKIE_OPTION_MAX_AGE, SET_COOKIE_OPTION_MAX_AGE_SESSION } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
+import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../UserInfo/UserInfo.mjs").UserInfo} UserInfo */
 
 export class OpenIdConnectAuthenticationImplementation extends AuthenticationImplementation {
     /**
      * @type {string}
      */
     #base_route;
-    /**
-     * @type {CryptoKey | null}
-     */
-    #cookie_crypto_key = null;
-    /**
-     * @type {string}
-     */
-    #cookie_key;
     /**
      * @type {string}
      */
@@ -73,20 +66,19 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      */
     #redirect_after_logout_url;
     /**
+     * @type {Map<string, [{[key: string]: *}, [number, number]]>}
+     */
+    #sessions;
+    /**
      * @type {{[key: string]: *} | null}
      */
     #set_cookie_options;
-    /**
-     * @type {Map}
-     */
-    #user_infos_cache;
 
     /**
      * @param {HttpApi} http_api
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
-     * @param {string} cookie_key
      * @param {string | null} provider_redirect_uri
      * @param {string | null} provider_scope
      * @param {string | null} provider_https_certificate
@@ -98,13 +90,12 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string | null} redirect_after_logout_url
      * @returns {OpenIdConnectAuthenticationImplementation}
      */
-    static new(http_api, provider_url, provider_client_id, provider_client_secret, cookie_key, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
+    static new(http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         return new this(
             http_api,
             provider_url,
             provider_client_id,
             provider_client_secret,
-            cookie_key,
             provider_redirect_uri,
             provider_scope ?? OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE,
             provider_https_certificate,
@@ -122,7 +113,6 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
-     * @param {string} cookie_key
      * @param {string | null} provider_redirect_uri
      * @param {string} provider_scope
      * @param {string | null} provider_https_certificate
@@ -134,14 +124,13 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string} redirect_after_logout_url
      * @private
      */
-    constructor(http_api, provider_url, provider_client_id, provider_client_secret, cookie_key, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
+    constructor(http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
         super();
 
         this.#http_api = http_api;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;
         this.#provider_client_secret = provider_client_secret;
-        this.#cookie_key = cookie_key;
         this.#provider_redirect_uri = provider_redirect_uri;
         this.#provider_scope = provider_scope;
         this.#provider_https_certificate = provider_https_certificate;
@@ -151,12 +140,16 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         this.#frontend_base_route = frontend_base_route;
         this.#redirect_after_login_url = redirect_after_login_url;
         this.#redirect_after_logout_url = redirect_after_logout_url;
-        this.#user_infos_cache = new Map();
+        this.#sessions = new Map();
+
+        setInterval(() => {
+            this.#removeInvalidSessions();
+        }, 5 * 60 * 1000);
     }
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
+     * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
         if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/callback`) {
@@ -177,41 +170,12 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             );
         }
 
-        let user_infos = null;
-
-        try {
-            const cookie = request.cookie(
-                this.#cookie_name
-            );
-
-            if (cookie !== null) {
-                if (this.#user_infos_cache.has(cookie)) {
-                    user_infos = this.#user_infos_cache.get(cookie);
-                } else {
-                    const [
-                        _user_infos,
-                        response_cookies
-                    ] = await this.#userInfos(
-                        request
-                    );
-
-                    if (_user_infos !== null) {
-                        this.#user_infos_cache.set(cookie, user_infos = _user_infos);
-                    }
-
-                    if (response_cookies !== null) {
-                        if (request._res !== null) {
-                            await this.#http_api._setCookies(
-                                request._res,
-                                response_cookies
-                            );
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        }
+        const [
+            user_infos,
+            cookies
+        ] = await this.#userInfos(
+            request
+        );
 
         if (user_infos === null) {
             const frontend_url = `${this.#frontend_base_route !== "/" ? this.#frontend_base_route : ""}/login`;
@@ -220,7 +184,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 HEADER_ACCEPT
             )?.includes(CONTENT_TYPE_HTML) ?? false) {
                 return HttpServerResponse.redirect(
-                    frontend_url
+                    frontend_url,
+                    null,
+                    null,
+                    cookies
                 );
             } else {
                 return HttpServerResponse.text(
@@ -228,25 +195,20 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     STATUS_CODE_401,
                     {
                         [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: frontend_url
-                    }
+                    },
+                    cookies
                 );
             }
         }
 
-        return user_infos;
-    }
+        if (cookies !== null && request._res !== null) {
+            await this.#http_api._setCookies(
+                request._res,
+                cookies
+            );
+        }
 
-    /**
-     * @returns {Promise<string>}
-     */
-    async generateCookieKey() {
-        return Buffer.from(await crypto.subtle.exportKey("raw", await crypto.subtle.generateKey({
-            name: "AES-CBC",
-            length: 256
-        }, true, [
-            "encrypt",
-            "decrypt"
-        ]))).toString("hex");
+        return user_infos;
     }
 
     /**
@@ -267,11 +229,18 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return response;
         }
 
+        const [
+            session_number,
+            session
+        ] = this.#getSession(
+            request
+        );
+
         let token_type, access_token, expires_in;
         try {
-            const session = await this.#decryptSession(
-                request
-            );
+            if (session_number === null || session === null) {
+                throw new Error("Missing session");
+            }
 
             if (request.url.searchParams.has("error_description")) {
                 throw new Error(request.url.searchParams.get("error_description"));
@@ -289,11 +258,11 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
             const state = request.url.searchParams.get("state");
 
-            if ((session?.state ?? null) === null || session.state !== state) {
+            if ((session.state ?? null) === null || session.state !== state) {
                 throw new Error("Invalid state");
             }
 
-            if ((session?.code_verifier ?? null) === null) {
+            if ((session.code_verifier ?? null) === null) {
                 throw new Error("Invalid code verifier");
             }
 
@@ -349,8 +318,9 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 "Invalid authorization",
                 STATUS_CODE_403,
                 null,
-                await this.#encyptSession(
-                    request
+                this.#setSession(
+                    request,
+                    session_number
                 )
             );
         }
@@ -359,116 +329,15 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             this.#redirect_after_login_url,
             null,
             null,
-            await this.#encyptSession(
+            this.#setSession(
                 request,
                 {
                     authorization: `${token_type} ${access_token}`
                 },
+                session_number,
                 expires_in
             )
         );
-    }
-
-    /**
-     * @param {HttpServerRequest} request
-     * @returns {Promise<{[key: string]: *} | null>}
-     */
-    async #decryptSession(request) {
-        const _encoded_session = request.cookie(
-            this.#cookie_name
-        );
-
-        if (_encoded_session === null) {
-            return null;
-        }
-
-        const encrypted_session = atob(_encoded_session);
-
-        let encoded_session;
-        if (this.#cookie_key !== OPEN_ID_CONNECT_COOKIE_KEY_PLAIN) {
-            const [
-                session,
-                iv
-            ] = encrypted_session.split("::").map(value => Buffer.from(value, "hex"));
-
-            encoded_session = await crypto.subtle.decrypt({
-                name: "AES-CBC",
-                iv
-            }, await this.#getCookieCryptoKey(), session);
-        } else {
-            encoded_session = Buffer.from(encrypted_session, "hex");
-        }
-
-        return JSON.parse(new TextDecoder().decode(encoded_session));
-    }
-
-    /**
-     * @param {HttpServerRequest} request
-     * @param {{[key: string]: *} | null} session
-     * @param {number | null} max_age
-     * @returns {Promise<{[key: string]: {value: string | null, options: {[key: string]: *} | null}} | null>}
-     */
-    async #encyptSession(request, session = null, max_age = null) {
-        if (session === null) {
-            if (request.cookie(
-                this.#cookie_name
-            ) === null) {
-                return null;
-            }
-
-            return {
-                [this.#cookie_name]: {
-                    value: null,
-                    options: this.#set_cookie_options
-                }
-            };
-        }
-
-        const encoded_session = new TextEncoder().encode(JSON.stringify(session));
-
-        let encrypted_session;
-        if (this.#cookie_key !== OPEN_ID_CONNECT_COOKIE_KEY_PLAIN) {
-            const iv = crypto.getRandomValues(new Uint8Array(16));
-
-            encrypted_session = [
-                await crypto.subtle.encrypt({
-                    name: "AES-CBC",
-                    iv
-                }, await this.#getCookieCryptoKey(), encoded_session),
-                iv.buffer
-            ].map(value => Buffer.from(value).toString("hex")).join("::");
-        } else {
-            encrypted_session = Buffer.from(encoded_session).toString("hex");
-        }
-
-        const set_cookie_max_age = this.#set_cookie_options?.[SET_COOKIE_OPTION_MAX_AGE] ?? null;
-
-        return {
-            [this.#cookie_name]: {
-                value: btoa(encrypted_session),
-                options: {
-                    ...this.#set_cookie_options,
-                    ...max_age !== null ? {
-                        [SET_COOKIE_OPTION_MAX_AGE]: set_cookie_max_age === SET_COOKIE_OPTION_MAX_AGE_SESSION ? SET_COOKIE_OPTION_MAX_AGE_SESSION : set_cookie_max_age !== null ? Math.min(max_age, set_cookie_max_age) : max_age
-                    } : null
-                }
-            }
-        };
-    }
-
-    /**
-     * @returns {Promise<CryptoKey>}
-     */
-    async #getCookieCryptoKey() {
-        this.#cookie_crypto_key ??= await crypto.subtle.importKey("raw", Buffer.from(this.#cookie_key, "hex"), {
-            name: "AES-CBC",
-            length: 256
-        }, false, [
-            "encrypt",
-            "decrypt"
-        ]);
-
-        return this.#cookie_crypto_key;
     }
 
     /**
@@ -497,6 +366,56 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      */
     #getProviderRedirectUri(request) {
         return this.#provider_redirect_uri ?? `${request.url.origin}${this.#frontend_base_route !== "/" ? this.#frontend_base_route : ""}/callback`;
+    }
+
+    /**
+     * @param {HttpServerRequest} request
+     * @returns {[string | null, {[key: string]: *} | null]}
+     */
+    #getSession(request) {
+        const session_number = request.cookie(
+            this.#cookie_name
+        );
+
+        if (session_number === null) {
+            return [
+                null,
+                null
+            ];
+        }
+
+        return this.#getValidSession(
+            session_number
+        );
+    }
+
+    /**
+     * @param {string} session_number
+     * @returns {[string | null, {[key: string]: *} | null]}
+     */
+    #getValidSession(session_number) {
+        const session = this.#sessions.get(session_number) ?? null;
+
+        if (session === null) {
+            return [
+                null,
+                null
+            ];
+        }
+
+        if ((Date.now() - session[1][0]) > session[1][1]) {
+            this.#sessions.delete(session_number);
+
+            return [
+                null,
+                null
+            ];
+        }
+
+        return [
+            session_number,
+            session[0]
+        ];
     }
 
     /**
@@ -554,8 +473,11 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             `${location}`,
             null,
             null,
-            await this.#encyptSession(
+            this.#setSession(
                 request,
+                this.#getSession(
+                    request
+                )[0],
                 {
                     state,
                     code_verifier
@@ -586,47 +508,137 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             this.#redirect_after_logout_url,
             null,
             null,
-            await this.#encyptSession(
-                request
+            this.#setSession(
+                request,
+                this.#getSession(
+                    request
+                )[0]
             )
         );
     }
 
     /**
+     * @returns {void}
+     */
+    #removeInvalidSessions() {
+        for (const session_number of Array.from(this.#sessions.keys())) {
+            this.#getValidSession(
+                session_number
+            );
+        }
+    }
+
+    /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<[{[key: string]: *} | null, {[key: string]: *} | null]>}
+     * @param {string | null} session_number
+     * @param {{[key: string]: *} | null} session
+     * @param {number | null} max_age
+     * @returns {{[key: string]: {value: string | null, options: {[key: string]: *} | null}} | null}
+     */
+    #setSession(request, session_number = null, session = null, max_age = null) {
+        if (session === null) {
+            if (session_number !== null) {
+                this.#sessions.delete(session_number);
+            }
+
+            if (request.cookie(
+                this.#cookie_name
+            ) === null) {
+                return null;
+            }
+
+            return {
+                [this.#cookie_name]: {
+                    value: null,
+                    options: this.#set_cookie_options
+                }
+            };
+        }
+
+        const _session_number = session_number ?? crypto.randomUUID();
+
+        const _max_age = max_age ?? (5 * 60);
+
+        this.#sessions.set(_session_number, [
+            session,
+            [
+                Date.now(),
+                _max_age
+            ]
+        ]);
+
+        return {
+            [this.#cookie_name]: {
+                value: _session_number,
+                options: {
+                    ...this.#set_cookie_options,
+                    [SET_COOKIE_OPTION_MAX_AGE]: _max_age
+                }
+            }
+        };
+    }
+
+    /**
+     * @param {HttpServerRequest} request
+     * @returns {Promise<[UserInfo | null, {[key: string]: {value: string | null, options: {[key: string]: *} | null}} | null]>}
      */
     async #userInfos(request) {
-        const session = await this.#decryptSession(
+        const [
+            session_number,
+            session
+        ] = this.#getSession(
             request
         );
-        const authorization = session?.authorization ?? null;
-
-        if (authorization === null) {
+        if (session_number === null || session === null) {
             return [
                 null,
-                await this.#encyptSession(
-                    request
+                this.#setSession(
+                    request,
+                    session_number
                 )
             ];
         }
 
-        return [
-            await (await this.#http_api.request(
+        if ((session.authorization ?? null) === null) {
+            return [
+                null,
+                this.#setSession(
+                    request,
+                    session_number
+                )
+            ];
+        }
+
+        try {
+            session.user_infos ??= await (await this.#http_api.request(
                 HttpClientRequest.new(
                     new URL((await this.#getProviderConfig()).userinfo_endpoint),
                     null,
                     null,
                     {
                         [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
-                        [HEADER_AUTHORIZATION]: authorization
+                        [HEADER_AUTHORIZATION]: session.authorization
                     },
                     null,
                     null,
                     null,
                     this.#provider_https_certificate
                 )
-            )).body.json(),
+            )).body.json();
+        } catch (error) {
+            console.error(error);
+
+            return [
+                null,
+                this.#setSession(
+                    request,
+                    session_number
+                )
+            ];
+        }
+
+        return [
+            session.user_infos,
             null
         ];
     }

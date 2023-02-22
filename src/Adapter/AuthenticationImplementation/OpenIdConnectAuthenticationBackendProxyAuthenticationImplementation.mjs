@@ -8,6 +8,7 @@ import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../../flux-http-api/src/
 
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
 /** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../UserInfo/UserInfo.mjs").UserInfo} UserInfo */
 
 export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation extends AuthenticationImplementation {
     /**
@@ -23,7 +24,7 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
      */
     #url;
     /**
-     * @type {Map}
+     * @type {WeakMap<{[key: string]: *}, UserInfo>}
      */
     #user_infos_cache;
 
@@ -53,12 +54,12 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
         this.#http_api = http_api;
         this.#base_route = base_route;
         this.#url = url;
-        this.#user_infos_cache = new Map();
+        this.#user_infos_cache = new WeakMap();
     }
 
     /**
      * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | {[key: string]: *}>}
+     * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
         for (const route of [
@@ -100,13 +101,9 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
             }
         }
 
-        let user_infos = null;
-
-        const cookie = request.header(
-            HEADER_COOKIE
-        );
-        if (cookie !== null && this.#user_infos_cache.has(cookie)) {
-            user_infos = this.#user_infos_cache.get(cookie);
+        let user_infos;
+        if (this.#user_infos_cache.has(request._res.req.socket)) {
+            user_infos = this.#user_infos_cache.get(request._res.req.socket);
         } else {
             const response = await this.#http_api.request(
                 HttpClientRequest.new(
@@ -139,20 +136,6 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                 )
             );
 
-            for (const key of [
-                HEADER_SET_COOKIE
-            ]) {
-                const value = response.header(
-                    key
-                );
-
-                if (value === null) {
-                    continue;
-                }
-
-                request._res?.setHeader(key, value);
-            }
-
             if (response.status_code === STATUS_CODE_302 || response.status_code === STATUS_CODE_401) {
                 return HttpServerResponse.new(
                     response.body,
@@ -160,6 +143,7 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                     [
                         HEADER_CONTENT_TYPE,
                         HEADER_LOCATION,
+                        HEADER_SET_COOKIE,
                         HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL
                     ].reduce((headers, key) => {
                         const value = response.header(
@@ -179,11 +163,25 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                 );
             }
 
+            for (const key of [
+                HEADER_SET_COOKIE
+            ]) {
+                const value = response.header(
+                    key
+                );
+
+                if (value === null) {
+                    continue;
+                }
+
+                request._res?.setHeader(key, value);
+            }
+
             if (!response.status_code_is_ok) {
                 return Promise.reject(response);
             }
 
-            this.#user_infos_cache.set(cookie, user_infos = await response.body.json());
+            this.#user_infos_cache.set(request._res.req.socket, user_infos = await response.body.json());
         }
 
         return user_infos;
