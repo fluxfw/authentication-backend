@@ -23,10 +23,6 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
      * @type {string}
      */
     #url;
-    /**
-     * @type {WeakMap<{[key: string]: *}, UserInfo>}
-     */
-    #user_infos_cache;
 
     /**
      * @param {HttpApi} http_api
@@ -54,7 +50,6 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
         this.#http_api = http_api;
         this.#base_route = base_route;
         this.#url = url;
-        this.#user_infos_cache = new WeakMap();
     }
 
     /**
@@ -101,52 +96,17 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
             }
         }
 
-        let user_infos;
-        if (this.#user_infos_cache.has(request._res.req.socket)) {
-            user_infos = this.#user_infos_cache.get(request._res.req.socket);
-        } else {
-            const response = await this.#http_api.request(
-                HttpClientRequest.new(
-                    new URL(`${this.#url}/api/user-infos`),
-                    null,
-                    null,
-                    {
-                        ...[
-                            HEADER_ACCEPT,
-                            HEADER_COOKIE
-                        ].reduce((headers, key) => {
-                            const value = request.header(
-                                key
-                            );
-
-                            if (value === null) {
-                                return headers;
-                            }
-
-                            headers[key] = value;
-
-                            return headers;
-                        }, {}),
-                        [HEADER_X_FORWARDED_HOST]: request.url.host,
-                        [HEADER_X_FORWARDED_PROTO]: request.url.protocol.slice(0, -1)
-                    },
-                    false,
-                    null,
-                    false
-                )
-            );
-
-            if (response.status_code === STATUS_CODE_302 || response.status_code === STATUS_CODE_401) {
-                return HttpServerResponse.new(
-                    response.body,
-                    response.status_code,
-                    [
-                        HEADER_CONTENT_TYPE,
-                        HEADER_LOCATION,
-                        HEADER_SET_COOKIE,
-                        HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL
+        const response = await this.#http_api.request(
+            HttpClientRequest.new(
+                new URL(`${this.#url}/api/user-infos`),
+                null,
+                null,
+                {
+                    ...[
+                        HEADER_ACCEPT,
+                        HEADER_COOKIE
                     ].reduce((headers, key) => {
-                        const value = response.header(
+                        const value = request.header(
                             key
                         );
 
@@ -158,32 +118,60 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
 
                         return headers;
                     }, {}),
-                    null,
-                    response.status_message
-                );
-            }
+                    [HEADER_X_FORWARDED_HOST]: request.url.host,
+                    [HEADER_X_FORWARDED_PROTO]: request.url.protocol.slice(0, -1)
+                },
+                false,
+                null,
+                false
+            )
+        );
 
-            for (const key of [
-                HEADER_SET_COOKIE
-            ]) {
-                const value = response.header(
-                    key
-                );
+        if (response.status_code === STATUS_CODE_302 || response.status_code === STATUS_CODE_401) {
+            return HttpServerResponse.new(
+                response.body,
+                response.status_code,
+                [
+                    HEADER_CONTENT_TYPE,
+                    HEADER_LOCATION,
+                    HEADER_SET_COOKIE,
+                    HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL
+                ].reduce((headers, key) => {
+                    const value = response.header(
+                        key
+                    );
 
-                if (value === null) {
-                    continue;
-                }
+                    if (value === null) {
+                        return headers;
+                    }
 
-                request._res?.setHeader(key, value);
-            }
+                    headers[key] = value;
 
-            if (!response.status_code_is_ok) {
-                return Promise.reject(response);
-            }
-
-            this.#user_infos_cache.set(request._res.req.socket, user_infos = await response.body.json());
+                    return headers;
+                }, {}),
+                null,
+                response.status_message
+            );
         }
 
-        return user_infos;
+        for (const key of [
+            HEADER_SET_COOKIE
+        ]) {
+            const value = response.header(
+                key
+            );
+
+            if (value === null) {
+                continue;
+            }
+
+            request._res?.setHeader(key, value);
+        }
+
+        if (!response.status_code_is_ok) {
+            return Promise.reject(response);
+        }
+
+        return response.body.json();
     }
 }
