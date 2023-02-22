@@ -236,7 +236,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request
         );
 
-        let token_type, access_token, expires_in;
+        let token_type, access_token, created_at, expires_in;
         try {
             if (session_number === null || session === null) {
                 throw new Error("Missing session");
@@ -306,9 +306,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
             token_type = token.token_type ?? null;
             access_token = token.access_token ?? null;
+            created_at = token.created_at ?? null;
             expires_in = token.expires_in ?? null;
 
-            if (token_type === null || access_token === null || expires_in === null) {
+            if (token_type === null || access_token === null || created_at === null || expires_in === null) {
                 throw new Error("Invalid access token");
             }
         } catch (error) {
@@ -335,7 +336,8 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 {
                     authorization: `${token_type} ${access_token}`
                 },
-                expires_in
+                expires_in,
+                created_at * 1000
             )
         );
     }
@@ -533,9 +535,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @param {string | null} session_number
      * @param {{[key: string]: *} | null} session
      * @param {number | null} max_age
+     * @param {number | null} created_at
      * @returns {{[key: string]: {value: string | null, options: {[key: string]: *} | null}} | null}
      */
-    #setSession(request, session_number = null, session = null, max_age = null) {
+    #setSession(request, session_number = null, session = null, max_age = null, created_at = null) {
         if (session === null) {
             if (session_number !== null) {
                 this.#sessions.delete(session_number);
@@ -559,10 +562,12 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
 
         const _max_age = max_age ?? (5 * 60);
 
+        const now = Date.now();
+
         this.#sessions.set(_session_number, [
             session,
             [
-                Date.now(),
+                created_at ?? now,
                 _max_age * 1000
             ]
         ]);
@@ -572,7 +577,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 value: _session_number,
                 options: {
                     ...this.#set_cookie_options,
-                    [SET_COOKIE_OPTION_MAX_AGE]: _max_age
+                    [SET_COOKIE_OPTION_MAX_AGE]: created_at !== null ? Math.max(1, _max_age - (now - created_at)) : _max_age
                 }
             }
         };
