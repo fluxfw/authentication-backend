@@ -331,10 +331,10 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             null,
             this.#setSession(
                 request,
+                session_number,
                 {
                     authorization: `${token_type} ${access_token}`
                 },
-                session_number,
                 expires_in
             )
         );
