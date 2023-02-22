@@ -577,7 +577,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 value: _session_number,
                 options: {
                     ...this.#set_cookie_options,
-                    [SET_COOKIE_OPTION_MAX_AGE]: created_at !== null ? Math.max(1, _max_age - (now - created_at)) : _max_age
+                    [SET_COOKIE_OPTION_MAX_AGE]: created_at !== null ? Math.max(1, _max_age - Math.ceil(now - created_at) / 1000) : _max_age
                 }
             }
         };
