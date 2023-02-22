@@ -563,7 +563,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             session,
             [
                 Date.now(),
-                _max_age
+                _max_age * 1000
             ]
         ]);
 
