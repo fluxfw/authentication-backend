@@ -1,8 +1,9 @@
 import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "../../../../flux-http-api/src/Adapter/Authorization/AUTHORIZATION_SCHEMA.mjs";
 import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
-import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
-import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
+import { CONTENT_TYPE_FORM_DATA_URL_ENCODED, CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
@@ -272,27 +273,30 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 throw new Error(`Provider does not supports grant type ${OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE}`);
             }
 
-            const token = await (await this.#http_api.request(
-                HttpClientRequest.json(
+            const _response = await this.#http_api.request(
+                HttpClientRequest.string(
                     new URL(provider_config.token_endpoint),
-                    {
-                        client_id: this.#provider_client_id,
-                        client_secret: this.#provider_client_secret,
-                        grant_type: OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE,
+                    `${new URLSearchParams({
                         code: request.url.searchParams.get("code"),
                         code_verifier: session.code_verifier,
+                        grant_type: OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE,
                         redirect_uri: this.#getProviderRedirectUri(
                             request
                         )
-                    },
+                    })}`,
                     METHOD_POST,
-                    null,
+                    {
+                        [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`,
+                        [HEADER_CONTENT_TYPE]: CONTENT_TYPE_FORM_DATA_URL_ENCODED
+                    },
                     null,
                     null,
                     null,
                     this.#provider_https_certificate
                 )
-            )).body.json();
+            );
+
+            const token = await _response.body.json();
 
             if ((token.error_description ?? null) !== null) {
                 throw new Error(token.error_description);
@@ -304,12 +308,16 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 throw new Error(token.message);
             }
 
+            if (!_response.status_code_is_ok) {
+                await Promise.reject(_response);
+            }
+
             token_type = token.token_type ?? null;
             access_token = token.access_token ?? null;
             created_at = token.created_at ?? null;
             expires_in = token.expires_in ?? null;
 
-            if (token_type === null || access_token === null || created_at === null || expires_in === null) {
+            if (token_type === null || access_token === null || expires_in === null) {
                 throw new Error("Invalid access token");
             }
         } catch (error) {
@@ -337,7 +345,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     authorization: `${token_type} ${access_token}`
                 },
                 expires_in,
-                created_at * 1000
+                created_at !== null ? created_at * 1000 : null
             )
         );
     }
@@ -352,7 +360,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 null,
                 null,
                 null,
-                null,
+                true,
                 null,
                 null,
                 this.#provider_https_certificate
@@ -450,7 +458,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             throw new Error(`Provider does not supports response type ${OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE}`);
         }
 
-        const code_verifier = crypto.randomUUID();
+        const code_verifier = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
 
         const location = new URL(provider_config.authorization_endpoint);
 
@@ -459,14 +467,14 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             value
         ] of Object.entries({
             client_id: this.#provider_client_id,
+            code_challenge: Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, ""),
+            code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
             redirect_uri: this.#getProviderRedirectUri(
                 request
             ),
             response_type: OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE,
-            state,
             scope: this.#provider_scope,
-            code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
-            code_challenge: Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, "")
+            state
         })) {
             location.searchParams.append(key, value);
         }
@@ -481,8 +489,8 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     request
                 )[0],
                 {
-                    state,
-                    code_verifier
+                    code_verifier,
+                    state
                 }
             )
         );
@@ -625,7 +633,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                         [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
                         [HEADER_AUTHORIZATION]: session.authorization
                     },
-                    null,
+                    true,
                     null,
                     null,
                     this.#provider_https_certificate

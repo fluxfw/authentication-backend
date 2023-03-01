@@ -20,6 +20,10 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
      */
     #http_api;
     /**
+     * @type {string | null}
+     */
+    #https_certificate;
+    /**
      * @type {string}
      */
     #url;
@@ -28,13 +32,15 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
      * @param {HttpApi} http_api
      * @param {string | null} base_route
      * @param {string | null} url
+     * @param {string | null} https_certificate
      * @returns {OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation}
      */
-    static new(http_api, base_route = null, url = null) {
+    static new(http_api, base_route = null, url = null, https_certificate = null) {
         return new this(
             http_api,
             base_route ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_BASE_ROUTE,
-            url ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_URL
+            url ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_URL,
+            https_certificate
         );
     }
 
@@ -42,14 +48,16 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
      * @param {HttpApi} http_api
      * @param {string} base_route
      * @param {string} url
+     * @param {string | null} https_certificate
      * @private
      */
-    constructor(http_api, base_route, url) {
+    constructor(http_api, base_route, url, https_certificate) {
         super();
 
         this.#http_api = http_api;
         this.#base_route = base_route;
         this.#url = url;
+        this.#https_certificate = https_certificate;
     }
 
     /**
@@ -90,7 +98,8 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                             HEADER_CONTENT_TYPE,
                             HEADER_LOCATION,
                             HEADER_SET_COOKIE
-                        ]
+                        ],
+                        server_certificate: this.#https_certificate
                     }
                 );
             }
@@ -121,9 +130,10 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                     [HEADER_X_FORWARDED_HOST]: request.url.host,
                     [HEADER_X_FORWARDED_PROTO]: request.url.protocol.slice(0, -1)
                 },
-                false,
                 null,
-                false
+                null,
+                null,
+                this.#https_certificate
             )
         );
 
