@@ -274,7 +274,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             }
 
             const _response = await this.#http_api.request(
-                HttpClientRequest.searchParams(
+                HttpClientRequest.urlSearchParams(
                     new URL(provider_config.token_endpoint),
                     new URLSearchParams({
                         code: request.url.searchParams.get("code"),
