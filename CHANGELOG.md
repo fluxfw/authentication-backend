@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-03-03-1
+
+Changes:
+
+- Open id connect
+
 ## v2023-03-02-2
 
 Changes:

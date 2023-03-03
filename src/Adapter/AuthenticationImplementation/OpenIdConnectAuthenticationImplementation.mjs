@@ -5,7 +5,7 @@ import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
-import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL, OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256, OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE, OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
+import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
@@ -237,17 +237,17 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             request
         );
 
-        let token_type, access_token, created_at, expires_in;
+        let token, payload;
         try {
-            if (session_number === null || session === null) {
-                throw new Error("Missing session");
-            }
-
             if (request.url.searchParams.has("error_description")) {
                 throw new Error(request.url.searchParams.get("error_description"));
             }
             if (request.url.searchParams.has("error")) {
                 throw new Error(request.url.searchParams.get("error"));
+            }
+
+            if (session_number === null || session === null) {
+                throw new Error("Invalid session");
             }
 
             if (!request.url.searchParams.has("code")) {
@@ -257,35 +257,30 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 throw new Error("Invalid state");
             }
 
-            const state = request.url.searchParams.get("state");
-
-            if ((session.state ?? null) === null || session.state !== state) {
-                throw new Error("Invalid state");
-            }
-
             if ((session.code_verifier ?? null) === null) {
                 throw new Error("Invalid code verifier");
             }
-
-            const provider_config = await this.#getProviderConfig();
-
-            if (!provider_config.grant_types_supported.includes(OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE)) {
-                throw new Error(`Provider does not supports grant type ${OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE}`);
+            if ((session.nonce ?? null) === null) {
+                throw new Error("Invalid nonce");
+            }
+            if ((session.state ?? null) === null || session.state !== request.url.searchParams.get("state")) {
+                throw new Error("Invalid state");
             }
 
             const _response = await this.#http_api.request(
                 HttpClientRequest.urlSearchParams(
-                    new URL(provider_config.token_endpoint),
+                    new URL((await this.#getProviderConfig()).token_endpoint),
                     new URLSearchParams({
                         code: request.url.searchParams.get("code"),
                         code_verifier: session.code_verifier,
-                        grant_type: OPEN_ID_CONNECT_PROVIDER_GRANT_TYPE_AUTHORIZATION_CODE,
+                        grant_type: "authorization_code",
                         redirect_uri: this.#getProviderRedirectUri(
                             request
                         )
                     }),
                     METHOD_POST,
                     {
+                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
                         [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
                     },
                     null,
@@ -295,30 +290,46 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 )
             );
 
-            const token = await _response.body.json();
+            token = await _response.body.json();
 
-            if ((token.error_description ?? null) !== null) {
+            if ((token?.error_description ?? null) !== null) {
                 throw new Error(token.error_description);
             }
-            if ((token.error ?? null) !== null) {
+            if ((token?.error ?? null) !== null) {
                 throw new Error(token.error);
-            }
-            if ((token.message ?? null) !== null) {
-                throw new Error(token.message);
             }
 
             if (!_response.status_code_is_ok) {
                 await Promise.reject(_response);
             }
 
-            token_type = token.token_type ?? null;
-            access_token = token.access_token ?? null;
-            created_at = token.created_at ?? null;
-            expires_in = token.expires_in ?? null;
-
-            if (token_type === null || access_token === null || expires_in === null) {
-                throw new Error("Invalid access token");
+            if ((token?.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
+                throw new Error("Invalid token");
             }
+
+            const id_token = token.id_token.split(".");
+            if (id_token.length !== 3) {
+                throw new Error("Invalid id token");
+            }
+
+            payload = JSON.parse(atob(id_token[1]));
+
+            if ((payload?.aud ?? null) === null || payload.aud !== this.#provider_client_id) {
+                throw new Error("Invalid aud");
+            }
+
+            if ((payload.iat ?? null) === null) {
+                throw new Error("Invalid iat");
+            }
+
+            if ((payload.iss ?? null) === null || payload.iss !== this.#provider_url) {
+                throw new Error("Invalid iss");
+            }
+
+            if ((payload.nonce ?? null) === null || payload.nonce !== session.nonce) {
+                throw new Error("Invalid nonce");
+            }
+
         } catch (error) {
             console.error(error);
 
@@ -341,10 +352,11 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 request,
                 session_number,
                 {
-                    authorization: `${token_type} ${access_token}`
+                    access_token: token.access_token,
+                    token_type: token.token_type
                 },
-                expires_in,
-                created_at !== null ? created_at * 1000 : null
+                token.expires_in,
+                payload.iat * 1000
             )
         );
     }
@@ -353,18 +365,38 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
      * @returns {Promise<{[key: string]: *}>}
      */
     async #getProviderConfig() {
-        this.#provider_config ??= await (await this.#http_api.request(
-            HttpClientRequest.new(
-                new URL(`${this.#provider_url}/.well-known/openid-configuration`),
-                null,
-                null,
-                null,
-                true,
-                null,
-                null,
-                this.#provider_https_certificate
-            )
-        )).body.json();
+        if (this.#provider_config === null) {
+            this.#provider_config ??= await (await this.#http_api.request(
+                HttpClientRequest.new(
+                    new URL(`${this.#provider_url}/.well-known/openid-configuration`),
+                    null,
+                    null,
+                    {
+                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON
+                    },
+                    true,
+                    null,
+                    null,
+                    this.#provider_https_certificate
+                )
+            )).body.json();
+
+            if (!this.#provider_config.code_challenge_methods_supported.includes("S256")) {
+                throw new Error("Provider does not supports code challenge S256");
+            }
+
+            if (!this.#provider_config.grant_types_supported.includes("authorization_code")) {
+                throw new Error("Provider does not supports grant type authorization_code");
+            }
+
+            if (!this.#provider_config.response_modes_supported.includes("query")) {
+                throw new Error("Provider does not supports response mode query");
+            }
+
+            if (!this.#provider_config.response_types_supported.includes("code")) {
+                throw new Error("Provider does not supports response type code");
+            }
+        }
 
         return this.#provider_config;
     }
@@ -445,21 +477,11 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return response;
         }
 
+        const code_verifier = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+        const nonce = crypto.randomUUID();
         const state = crypto.randomUUID();
 
-        const provider_config = await this.#getProviderConfig();
-
-        if (!provider_config.code_challenge_methods_supported.includes(OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256)) {
-            throw new Error(`Provider does not supports code challenge ${OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256}`);
-        }
-
-        if (!provider_config.response_types_supported.includes(OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE)) {
-            throw new Error(`Provider does not supports response type ${OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE}`);
-        }
-
-        const code_verifier = `${crypto.randomUUID()}-${crypto.randomUUID()}`;
-
-        const location = new URL(provider_config.authorization_endpoint);
+        const location = new URL((await this.#getProviderConfig()).authorization_endpoint);
 
         for (const [
             key,
@@ -467,11 +489,13 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         ] of Object.entries({
             client_id: this.#provider_client_id,
             code_challenge: Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code_verifier))).toString("base64").replaceAll("+", "-").replaceAll("/", "_").replace(/[=]+$/, ""),
-            code_challenge_method: OPEN_ID_CONNECT_PROVIDER_CODE_CHALLENGE_S256,
+            code_challenge_method: "S256",
+            nonce,
             redirect_uri: this.#getProviderRedirectUri(
                 request
             ),
-            response_type: OPEN_ID_CONNECT_PROVIDER_RESPONSE_TYPE_CODE,
+            response_mode: "query",
+            response_type: "code",
             scope: this.#provider_scope,
             state
         })) {
@@ -489,6 +513,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 )[0],
                 {
                     code_verifier,
+                    nonce,
                     state
                 }
             )
@@ -513,15 +538,66 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             return response;
         }
 
+        const [
+            session_number,
+            session
+        ] = this.#getSession(
+            request
+        );
+        if (session_number === null || session === null) {
+            return HttpServerResponse.redirect(
+                this.#redirect_after_logout_url,
+                null,
+                null,
+                this.#setSession(
+                    request,
+                    session_number
+                )
+            );
+        }
+
+        if ((session.access_token ?? null) === null) {
+            return HttpServerResponse.redirect(
+                this.#redirect_after_logout_url,
+                null,
+                null,
+                this.#setSession(
+                    request,
+                    session_number
+                )
+            );
+        }
+
+        try {
+            await this.#http_api.request(
+                HttpClientRequest.urlSearchParams(
+                    new URL((await this.#getProviderConfig()).revocation_endpoint),
+                    new URLSearchParams({
+                        token: session.access_token,
+                        token_type_hint: "access_token"
+                    }),
+                    METHOD_POST,
+                    {
+                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
+                        [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
+                    },
+                    true,
+                    false,
+                    null,
+                    this.#provider_https_certificate
+                )
+            );
+        } catch (error) {
+            console.error(error);
+        }
+
         return HttpServerResponse.redirect(
             this.#redirect_after_logout_url,
             null,
             null,
             this.#setSession(
                 request,
-                this.#getSession(
-                    request
-                )[0]
+                session_number
             )
         );
     }
@@ -612,7 +688,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
             ];
         }
 
-        if ((session.authorization ?? null) === null) {
+        if ((session.access_token ?? null) === null || (session.token_type ?? null) === null) {
             return [
                 null,
                 this.#setSession(
@@ -630,7 +706,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     null,
                     {
                         [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
-                        [HEADER_AUTHORIZATION]: session.authorization
+                        [HEADER_AUTHORIZATION]: `${session.token_type} ${session.access_token}`
                     },
                     true,
                     null,
