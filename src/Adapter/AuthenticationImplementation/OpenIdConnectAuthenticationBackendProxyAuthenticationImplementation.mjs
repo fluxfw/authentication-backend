@@ -1,8 +1,8 @@
 import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
 import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
+import { METHOD_GET } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_DEFAULT_URL } from "../OpenIdConnectAuthenticationBackendProxy/OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
 
@@ -74,9 +74,7 @@ export class OpenIdConnectAuthenticationBackendProxyAuthenticationImplementation
                 const response = await this.#http_api.validateMethods(
                     request,
                     [
-                        METHOD_GET,
-                        METHOD_HEAD,
-                        METHOD_OPTIONS
+                        METHOD_GET
                     ]
                 );
 

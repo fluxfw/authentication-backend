@@ -4,7 +4,7 @@ import { HttpClientRequest } from "../../../../flux-http-api/src/Adapter/Client/
 import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../../flux-http-api/src/Adapter/ContentType/CONTENT_TYPE.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../../flux-http-api/src/Adapter/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_HEAD, METHOD_OPTIONS, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
+import { METHOD_GET, METHOD_POST } from "../../../../flux-http-api/src/Adapter/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "../OpenIdConnect/OPEN_ID_CONNECT.mjs";
 import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../../flux-http-api/src/Adapter/Cookie/SET_COOKIE_OPTION.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
@@ -220,9 +220,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         const response = await this.#http_api.validateMethods(
             request,
             [
-                METHOD_GET,
-                METHOD_HEAD,
-                METHOD_OPTIONS
+                METHOD_GET
             ]
         );
 
@@ -290,12 +288,12 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 )
             );
 
-            token = await _response.body.json();
+            token = await _response.body.json() ?? {};
 
-            if ((token?.error_description ?? null) !== null) {
+            if ((token.error_description ?? null) !== null) {
                 throw new Error(token.error_description);
             }
-            if ((token?.error ?? null) !== null) {
+            if ((token.error ?? null) !== null) {
                 throw new Error(token.error);
             }
 
@@ -303,7 +301,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 await Promise.reject(_response);
             }
 
-            if ((token?.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
+            if ((token.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
                 throw new Error("Invalid token");
             }
 
@@ -312,9 +310,9 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                 throw new Error("Invalid id token");
             }
 
-            payload = JSON.parse(atob(id_token[1]));
+            payload = JSON.parse(atob(id_token[1])) ?? {};
 
-            if ((payload?.aud ?? null) === null || payload.aud !== this.#provider_client_id) {
+            if ((payload.aud ?? null) === null || payload.aud !== this.#provider_client_id) {
                 throw new Error("Invalid aud");
             }
 
@@ -379,22 +377,26 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     null,
                     this.#provider_https_certificate
                 )
-            )).body.json();
+            )).body.json() ?? {};
 
-            if (!this.#provider_config.code_challenge_methods_supported.includes("S256")) {
+            if (!(this.#provider_config.code_challenge_methods_supported?.includes("S256") ?? false)) {
                 throw new Error("Provider does not supports code challenge S256");
             }
 
-            if (!this.#provider_config.grant_types_supported.includes("authorization_code")) {
+            if (!(this.#provider_config.grant_types_supported?.includes("authorization_code") ?? false)) {
                 throw new Error("Provider does not supports grant type authorization_code");
             }
 
-            if (!this.#provider_config.response_modes_supported.includes("query")) {
+            if (!(this.#provider_config.response_modes_supported?.includes("query") ?? false)) {
                 throw new Error("Provider does not supports response mode query");
             }
 
-            if (!this.#provider_config.response_types_supported.includes("code")) {
+            if (!(this.#provider_config.response_types_supported?.includes("code") ?? false)) {
                 throw new Error("Provider does not supports response type code");
+            }
+
+            if (!(this.#provider_config.token_endpoint_auth_methods_supported?.includes("client_secret_basic") ?? false)) {
+                throw new Error("Provider does not supports token endpoint auth method client_secret_basic");
             }
         }
 
@@ -467,9 +469,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         const response = await this.#http_api.validateMethods(
             request,
             [
-                METHOD_GET,
-                METHOD_HEAD,
-                METHOD_OPTIONS
+                METHOD_GET
             ]
         );
 
@@ -528,9 +528,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
         const response = await this.#http_api.validateMethods(
             request,
             [
-                METHOD_GET,
-                METHOD_HEAD,
-                METHOD_OPTIONS
+                METHOD_GET
             ]
         );
 
@@ -713,7 +711,7 @@ export class OpenIdConnectAuthenticationImplementation extends AuthenticationImp
                     null,
                     this.#provider_https_certificate
                 )
-            )).body.json();
+            )).body.json() ?? {};
         } catch (error) {
             console.error(error);
 
