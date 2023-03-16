@@ -1,1 +1,3 @@
-# flux-authentication-backend-api
+# flux-authentication-backend
+
+Authentication backend

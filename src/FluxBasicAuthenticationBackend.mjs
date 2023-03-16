@@ -1,43 +1,43 @@
-import { AuthenticationImplementation } from "./AuthenticationImplementation.mjs";
-import { AUTHORIZATION_SCHEMA_BASIC } from "../../../../flux-http-api/src/Adapter/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { HttpServerResponse } from "../../../../flux-http-api/src/Adapter/Server/HttpServerResponse.mjs";
-import { STATUS_CODE_400, STATUS_CODE_403 } from "../../../../flux-http-api/src/Adapter/Status/STATUS_CODE.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { FluxAuthenticationBackend } from "./FluxAuthenticationBackend.mjs";
+import { HttpServerResponse } from "../../flux-http-api/src/Server/HttpServerResponse.mjs";
+import { STATUS_CODE_400, STATUS_CODE_403 } from "../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
-/** @typedef {import("../../../../flux-http-api/src/Adapter/Api/HttpApi.mjs").HttpApi} HttpApi */
-/** @typedef {import("../../../../flux-http-api/src/Adapter/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
-/** @typedef {import("../UserInfo/UserInfo.mjs").UserInfo} UserInfo */
+/** @typedef {import("../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
+/** @typedef {import("../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
-export class BasicAuthenticationImplementation extends AuthenticationImplementation {
+export class FluxBasicAuthenticationBackend extends FluxAuthenticationBackend {
     /**
-     * @type {HttpApi}
+     * @type {FluxHttpApi}
      */
-    #http_api;
+    #flux_http_api;
     /**
      * @type {{[key: string]: string}}
      */
     #users;
 
     /**
-     * @param {HttpApi} http_api
+     * @param {FluxHttpApi} flux_http_api
      * @param {{[key: string]: string}} users
-     * @returns {BasicAuthenticationImplementation}
+     * @returns {FluxBasicAuthenticationBackend}
      */
-    static new(http_api, users) {
+    static new(flux_http_api, users) {
         return new this(
-            http_api,
+            flux_http_api,
             users
         );
     }
 
     /**
-     * @param {HttpApi} http_api
+     * @param {FluxHttpApi} flux_http_api
      * @param {{[key: string]: string}} users
      * @private
      */
-    constructor(http_api, users) {
+    constructor(flux_http_api, users) {
         super();
 
-        this.#http_api = http_api;
+        this.#flux_http_api = flux_http_api;
         this.#users = users;
     }
 
@@ -46,7 +46,7 @@ export class BasicAuthenticationImplementation extends AuthenticationImplementat
      * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
-        const authorization_parameters = await this.#http_api.getAuthorizationParameters(
+        const authorization_parameters = await this.#flux_http_api.getAuthorizationParameters(
             request,
             AUTHORIZATION_SCHEMA_BASIC
         );

@@ -6,6 +6,13 @@ Changes:
 
 \-
 
+## v2023-03-16-1
+
+Changes:
+
+- Simplify
+- Renamed to `flux-authentication-backend`
+
 ## v2023-03-10-1
 
 Changes:
