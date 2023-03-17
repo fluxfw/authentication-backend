@@ -6,6 +6,6 @@ export const FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_R
 
 export const FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE = "openid";
 
-export const FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL = "/Libs/flux-authentication-frontend-api/src/Adapter/Authentication/AuthenticationSuccess.html";
+export const FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL = "/Libs/flux-authentication-frontend/src/Authentication/AuthenticationSuccess.html";
 
 export const FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL = "/";
