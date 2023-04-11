@@ -1,5 +1,4 @@
 import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { FluxAuthenticationBackend } from "../FluxAuthenticationBackend.mjs";
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../flux-http-api/src/ContentType/CONTENT_TYPE.mjs";
@@ -9,11 +8,15 @@ import { METHOD_GET, METHOD_POST } from "../../../flux-http-api/src/Method/METHO
 import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../flux-http-api/src/Cookie/SET_COOKIE_OPTION.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
+/** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
 /** @typedef {import("../../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
 /** @typedef {import("../../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
-export class FluxOpenIdConnectAuthenticationBackend extends FluxAuthenticationBackend {
+/**
+ * @implements {FluxAuthenticationBackend}
+ */
+export class FluxOpenIdConnectAuthenticationBackend {
     /**
      * @type {string}
      */
@@ -126,8 +129,6 @@ export class FluxOpenIdConnectAuthenticationBackend extends FluxAuthenticationBa
      * @private
      */
     constructor(flux_http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
-        super();
-
         this.#flux_http_api = flux_http_api;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;

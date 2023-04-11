@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-04-11-1
+
+Changes:
+
+- Remove extends interface
+
 ## v2023-03-17-1
 
 Changes:

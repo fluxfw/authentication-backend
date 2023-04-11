@@ -1,4 +1,3 @@
-import { FluxAuthenticationBackend } from "../FluxAuthenticationBackend.mjs";
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { METHOD_GET } from "../../../flux-http-api/src/Method/METHOD.mjs";
@@ -6,11 +5,15 @@ import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEN
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
+/** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
 /** @typedef {import("../../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
 /** @typedef {import("../../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
-export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend extends FluxAuthenticationBackend {
+/**
+ * @implements {FluxAuthenticationBackend}
+ */
+export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
     /**
      * @type {string}
      */
@@ -52,8 +55,6 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend ex
      * @private
      */
     constructor(flux_http_api, base_route, url, https_certificate) {
-        super();
-
         this.#flux_http_api = flux_http_api;
         this.#base_route = base_route;
         this.#url = url;

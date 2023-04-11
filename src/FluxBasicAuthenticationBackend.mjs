@@ -1,13 +1,16 @@
 import { AUTHORIZATION_SCHEMA_BASIC } from "../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { FluxAuthenticationBackend } from "./FluxAuthenticationBackend.mjs";
 import { HttpServerResponse } from "../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { STATUS_CODE_400, STATUS_CODE_403 } from "../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
+/** @typedef {import("./FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
 /** @typedef {import("../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
 /** @typedef {import("../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
-export class FluxBasicAuthenticationBackend extends FluxAuthenticationBackend {
+/**
+ * @implements {FluxAuthenticationBackend}
+ */
+export class FluxBasicAuthenticationBackend {
     /**
      * @type {FluxHttpApi}
      */
@@ -35,8 +38,6 @@ export class FluxBasicAuthenticationBackend extends FluxAuthenticationBackend {
      * @private
      */
     constructor(flux_http_api, users) {
-        super();
-
         this.#flux_http_api = flux_http_api;
         this.#users = users;
     }
