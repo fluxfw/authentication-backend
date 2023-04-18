@@ -1,7 +1,7 @@
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { METHOD_GET } from "../../../flux-http-api/src/Method/METHOD.mjs";
-import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_URL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
+import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
 import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
@@ -23,26 +23,38 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
      */
     #flux_http_api;
     /**
+     * @type {string}
+     */
+    #host;
+    /**
      * @type {string | null}
      */
     #https_certificate;
     /**
+     * @type {number | null}
+     */
+    #port;
+    /**
      * @type {string}
      */
-    #url;
+    #protocol;
 
     /**
      * @param {FluxHttpApi} flux_http_api
      * @param {string | null} base_route
-     * @param {string | null} url
+     * @param {string | null} host
+     * @param {string | null} protocol
+     * @param {number | null} port
      * @param {string | null} https_certificate
      * @returns {FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend}
      */
-    static new(flux_http_api, base_route = null, url = null, https_certificate = null) {
+    static new(flux_http_api, base_route = null, host = null, protocol = null, port = null, https_certificate = null) {
         return new this(
             flux_http_api,
             base_route ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE,
-            url ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_URL,
+            host ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST,
+            protocol ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL,
+            port,
             https_certificate
         );
     }
@@ -50,14 +62,18 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
     /**
      * @param {FluxHttpApi} flux_http_api
      * @param {string} base_route
-     * @param {string} url
+     * @param {string} host
+     * @param {string} protocol
+     * @param {number | string} port
      * @param {string | null} https_certificate
      * @private
      */
-    constructor(flux_http_api, base_route, url, https_certificate) {
+    constructor(flux_http_api, base_route, host, protocol, port, https_certificate) {
         this.#flux_http_api = flux_http_api;
         this.#base_route = base_route;
-        this.#url = url;
+        this.#host = host;
+        this.#protocol = protocol;
+        this.#port = port;
         this.#https_certificate = https_certificate;
     }
 
@@ -106,7 +122,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
 
         const response = await this.#flux_http_api.request(
             HttpClientRequest.new(
-                new URL(`${this.#url}/api/user-infos`),
+                new URL("/api/user-infos", this.#url),
                 null,
                 null,
                 {
@@ -182,5 +198,12 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
         }
 
         return response.body.json();
+    }
+
+    /**
+     * @returns {string}
+     */
+    get #url() {
+        return `${this.#protocol}://${this.#host}${this.#port !== null ? `:${this.#port}` : ""}`;
     }
 }
