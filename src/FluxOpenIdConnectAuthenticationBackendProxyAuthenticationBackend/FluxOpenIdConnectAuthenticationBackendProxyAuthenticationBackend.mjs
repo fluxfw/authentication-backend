@@ -1,8 +1,9 @@
+import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { METHOD_GET } from "../../../flux-http-api/src/Method/METHOD.mjs";
-import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
-import { HEADER_ACCEPT, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
+import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_USER } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
@@ -31,6 +32,10 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
      */
     #https_certificate;
     /**
+     * @type {string}
+     */
+    #password;
+    /**
      * @type {number | null}
      */
     #port;
@@ -38,21 +43,29 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
      * @type {string}
      */
     #protocol;
+    /**
+     * @type {string}
+     */
+    #user;
 
     /**
      * @param {FluxHttpApi} flux_http_api
+     * @param {string} password
      * @param {string | null} base_route
      * @param {string | null} host
+     * @param {string | null} user
      * @param {string | null} protocol
      * @param {number | null} port
      * @param {string | null} https_certificate
      * @returns {FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend}
      */
-    static new(flux_http_api, base_route = null, host = null, protocol = null, port = null, https_certificate = null) {
+    static new(flux_http_api, password, base_route = null, host = null, user = null, protocol = null, port = null, https_certificate = null) {
         return new this(
             flux_http_api,
+            password,
             base_route ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE,
             host ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST,
+            user ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_USER,
             protocol ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL,
             port,
             https_certificate
@@ -61,17 +74,21 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
 
     /**
      * @param {FluxHttpApi} flux_http_api
+     * @param {string} password
      * @param {string} base_route
      * @param {string} host
+     * @param {string} user
      * @param {string} protocol
      * @param {number | string} port
      * @param {string | null} https_certificate
      * @private
      */
-    constructor(flux_http_api, base_route, host, protocol, port, https_certificate) {
+    constructor(flux_http_api, password, base_route, host, user, protocol, port, https_certificate) {
         this.#flux_http_api = flux_http_api;
+        this.#password = password;
         this.#base_route = base_route;
         this.#host = host;
+        this.#user = user;
         this.#protocol = protocol;
         this.#port = port;
         this.#https_certificate = https_certificate;
@@ -114,6 +131,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
                             HEADER_LOCATION,
                             HEADER_SET_COOKIE
                         ],
+                        authorization: this.#authorization,
                         server_certificate: this.#https_certificate
                     }
                 );
@@ -142,6 +160,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
 
                         return headers;
                     }, {}),
+                    [HEADER_AUTHORIZATION]: this.#authorization,
                     [HEADER_X_FORWARDED_HOST]: request.url.host,
                     [HEADER_X_FORWARDED_PROTO]: request.url.protocol.slice(0, -1)
                 },
@@ -198,6 +217,13 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
         }
 
         return response.body.json();
+    }
+
+    /**
+     * @returns {string}
+     */
+    get #authorization() {
+        return `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#user}:${this.#password}`)}`;
     }
 
     /**
