@@ -1,7 +1,6 @@
 import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
-import { METHOD_GET } from "../../../flux-http-api/src/Method/METHOD.mjs";
 import { PROTOCOL_DEFAULT_PORT } from "../../../flux-http-api/src/Protocol/PROTOCOL_DEFAULT_PORT.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_USER } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
@@ -108,21 +107,11 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
             "logout"
         ]) {
             if (request.url.pathname === `${this.#base_route !== "/" ? this.#base_route : ""}/${route}`) {
-                const response = await this.#flux_http_api.validateMethods(
-                    request,
-                    [
-                        METHOD_GET
-                    ]
-                );
-
-                if (response !== null) {
-                    return response;
-                }
-
                 return this.#flux_http_api.proxyRequest(
                     {
                         url: `${this.#url}/api/${route}`,
                         request,
+                        request_method: true,
                         request_query_params: route === "callback",
                         request_headers: [
                             HEADER_COOKIE
