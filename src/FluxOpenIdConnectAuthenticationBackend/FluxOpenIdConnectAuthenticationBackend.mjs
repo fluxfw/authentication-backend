@@ -299,7 +299,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
             }
 
             if (!_response.status_code_is_ok) {
-                await Promise.reject(_response);
+                return Promise.reject(_response);
             }
 
             if ((token.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
