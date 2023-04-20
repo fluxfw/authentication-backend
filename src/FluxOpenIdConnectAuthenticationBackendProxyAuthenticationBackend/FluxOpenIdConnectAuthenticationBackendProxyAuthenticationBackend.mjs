@@ -2,6 +2,7 @@ import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authoriza
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
 import { METHOD_GET } from "../../../flux-http-api/src/Method/METHOD.mjs";
+import { PROTOCOL_DEFAULT_PORT } from "../../../flux-http-api/src/Protocol/PROTOCOL_DEFAULT_PORT.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_USER } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
@@ -60,14 +61,16 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
      * @returns {FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend}
      */
     static new(flux_http_api, password, base_route = null, host = null, user = null, protocol = null, port = null, https_certificate = null) {
+        const _protocol = protocol ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL;
+
         return new this(
             flux_http_api,
             password,
             base_route ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE,
             host ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_HOST,
             user ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_USER,
-            protocol ?? FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEND_DEFAULT_PROTOCOL,
-            port,
+            _protocol,
+            port !== (PROTOCOL_DEFAULT_PORT[_protocol] ?? null) ? port : null,
             https_certificate
         );
     }

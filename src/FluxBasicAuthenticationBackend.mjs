@@ -76,19 +76,19 @@ export class FluxBasicAuthenticationBackend {
         }
 
         const [
-            user_name,
+            user,
             ..._password
         ] = parameters.split(":");
         const password = _password.join(":");
 
-        if (user_name === "" || password === "") {
+        if (user === "" || password === "") {
             return HttpServerResponse.text(
                 "Invalid authorization parameters",
                 STATUS_CODE_400
             );
         }
 
-        if (!Object.hasOwn(this.#users, user_name) || this.#users[user_name] !== password) {
+        if (!Object.hasOwn(this.#users, user) || this.#users[user] !== password) {
             return HttpServerResponse.text(
                 "No access",
                 STATUS_CODE_403
@@ -96,7 +96,7 @@ export class FluxBasicAuthenticationBackend {
         }
 
         return {
-            "user-name": user_name
+            user
         };
     }
 }
