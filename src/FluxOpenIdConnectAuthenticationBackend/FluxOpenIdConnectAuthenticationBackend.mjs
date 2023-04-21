@@ -1,7 +1,7 @@
 import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { CONTENT_TYPE_HTML } from "../../../flux-http-api/src/ContentType/CONTENT_TYPE.mjs";
 import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
-import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../flux-http-api/src/ContentType/CONTENT_TYPE.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND.mjs";
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_POST } from "../../../flux-http-api/src/Method/METHOD.mjs";
@@ -279,7 +279,6 @@ export class FluxOpenIdConnectAuthenticationBackend {
                     }),
                     METHOD_POST,
                     {
-                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
                         [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
                     },
                     null,
@@ -370,9 +369,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                     new URL(`${this.#provider_url}/.well-known/openid-configuration`),
                     null,
                     null,
-                    {
-                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON
-                    },
+                    null,
                     true,
                     null,
                     null,
@@ -577,7 +574,6 @@ export class FluxOpenIdConnectAuthenticationBackend {
                     }),
                     METHOD_POST,
                     {
-                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
                         [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
                     },
                     true,
@@ -704,7 +700,6 @@ export class FluxOpenIdConnectAuthenticationBackend {
                     null,
                     null,
                     {
-                        [HEADER_ACCEPT]: CONTENT_TYPE_JSON,
                         [HEADER_AUTHORIZATION]: `${session.token_type} ${session.access_token}`
                     },
                     true,
