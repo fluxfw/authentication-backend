@@ -6,6 +6,7 @@ import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_PROXY_AUTHENTICATION_BACKEN
 import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_COOKIE, HEADER_LOCATION, HEADER_SET_COOKIE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL, HEADER_X_FORWARDED_HOST, HEADER_X_FORWARDED_PROTO } from "../../../flux-http-api/src/Header/HEADER.mjs";
 import { STATUS_CODE_302, STATUS_CODE_401 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
 
+/** @typedef {import("node:stram").Duplex} Duplex */
 /** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
 /** @typedef {import("../../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
 /** @typedef {import("../../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
@@ -47,6 +48,10 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
      * @type {string}
      */
     #user;
+    /**
+     * @type {WeakMap<Duplex, [string, UserInfo]>}
+     */
+    #user_infos_cache;
 
     /**
      * @param {FluxHttpApi} flux_http_api
@@ -94,6 +99,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
         this.#protocol = protocol;
         this.#port = port;
         this.#https_certificate = https_certificate;
+        this.#user_infos_cache = new WeakMap();
     }
 
     /**
@@ -130,6 +136,16 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
             }
         }
 
+        const cookie = request.header(HEADER_COOKIE);
+
+        if (cookie !== null) {
+            const user_infos = this.#user_infos_cache.get(request._res.request.socket) ?? null;
+
+            if (user_infos !== null && user_infos[0] === cookie) {
+                return user_infos[1];
+            }
+        }
+
         const response = await this.#flux_http_api.request(
             HttpClientRequest.new(
                 new URL("/api/user-infos", this.#url),
@@ -140,7 +156,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
                         HEADER_ACCEPT,
                         HEADER_COOKIE
                     ].reduce((headers, key) => {
-                        const value = request.header(
+                        const value = key === HEADER_COOKIE ? cookie : request.header(
                             key
                         );
 
@@ -208,7 +224,14 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
             return Promise.reject(response);
         }
 
-        return response.body.json();
+        const user_infos = await response.body.json();
+
+        this.#user_infos_cache.set(request._res.request.socket, [
+            cookie,
+            user_infos
+        ]);
+
+        return user_infos;
     }
 
     /**

@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-08-10-1
+
+Changes:
+
+- Proxy user infos cache
+
 ## v2023-04-20-2
 
 Changes:

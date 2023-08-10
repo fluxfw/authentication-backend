@@ -146,7 +146,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
 
         setInterval(() => {
             this.#removeInvalidSessions();
-        }, 5 * 60 * 1000);
+        }, 5 * 60 * 1_000);
     }
 
     /**
@@ -354,7 +354,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                     token_type: token.token_type
                 },
                 token.expires_in,
-                payload.iat * 1000
+                payload.iat * 1_000
             )
         );
     }
@@ -646,7 +646,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
             session,
             [
                 created_at ?? now,
-                _max_age * 1000
+                _max_age * 1_000
             ]
         ]);
 
@@ -655,7 +655,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 value: _session_number,
                 options: {
                     ...this.#set_cookie_options,
-                    [SET_COOKIE_OPTION_MAX_AGE]: Math.max(1, _max_age - (created_at !== null ? Math.min(1, Math.ceil((now - created_at) / 1000)) : 1)),
+                    [SET_COOKIE_OPTION_MAX_AGE]: Math.max(1, _max_age - (created_at !== null ? Math.min(1, Math.ceil((now - created_at) / 1_000)) : 1)),
                     [SET_COOKIE_OPTION_EXPIRES]: null
                 }
             }
