@@ -1,5 +1,5 @@
 {
-    "version": "2023-08-10-1",
+    "version": "2023-08-10-2",
     "description": "Authentication backend",
     "topics": [
         "authentication",

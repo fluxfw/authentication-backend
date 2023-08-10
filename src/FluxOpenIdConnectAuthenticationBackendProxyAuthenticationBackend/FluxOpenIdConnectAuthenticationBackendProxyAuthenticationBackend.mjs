@@ -139,7 +139,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
         const cookie = request.header(HEADER_COOKIE);
 
         if (cookie !== null) {
-            const user_infos = this.#user_infos_cache.get(request._res.request.socket) ?? null;
+            const user_infos = this.#user_infos_cache.get(request._res.req.socket) ?? null;
 
             if (user_infos !== null && user_infos[0] === cookie) {
                 return user_infos[1];
@@ -226,7 +226,7 @@ export class FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend {
 
         const user_infos = await response.body.json();
 
-        this.#user_infos_cache.set(request._res.request.socket, [
+        this.#user_infos_cache.set(request._res.req.socket, [
             cookie,
             user_infos
         ]);
