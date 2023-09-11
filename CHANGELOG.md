@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2023-09-11-1
+
+Changes:
+
+- Remove `FluxOpenIdConnectAuthenticationBackendProxyAuthenticationBackend`
+
 ## v2023-08-10-2
 
 Changes:
