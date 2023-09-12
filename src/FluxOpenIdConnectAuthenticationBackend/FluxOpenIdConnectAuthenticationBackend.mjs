@@ -312,7 +312,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
 
             payload = JSON.parse(atob(id_token[1])) ?? {};
 
-            if ((payload.aud ?? null) === null || payload.aud !== this.#provider_client_id) {
+            if ((payload.aud ?? null) === null || !(payload.aud === this.#provider_client_id || (Array.isArray(payload.aud) && payload.aud.includes(this.#provider_client_id)))) {
                 throw new Error("Invalid aud");
             }
 
@@ -320,7 +320,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error("Invalid iat");
             }
 
-            if ((payload.iss ?? null) === null || payload.iss !== this.#provider_url) {
+            if ((payload.iss ?? null) === null || payload.iss.replace(/\/$/, "") !== this.#provider_url) {
                 throw new Error("Invalid iss");
             }
 
@@ -385,7 +385,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error("Provider does not supports grant type authorization_code");
             }
 
-            if (!(this.#provider_config.response_modes_supported?.includes("query") ?? false)) {
+            if (!(this.#provider_config.response_modes_supported?.includes("query") ?? true)) {
                 throw new Error("Provider does not supports response mode query");
             }
 
@@ -393,7 +393,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error("Provider does not supports response type code");
             }
 
-            if (!(this.#provider_config.token_endpoint_auth_methods_supported?.includes("client_secret_basic") ?? false)) {
+            if (!(this.#provider_config.token_endpoint_auth_methods_supported?.includes("client_secret_basic") ?? true)) {
                 throw new Error("Provider does not supports token endpoint auth method client_secret_basic");
             }
         }
