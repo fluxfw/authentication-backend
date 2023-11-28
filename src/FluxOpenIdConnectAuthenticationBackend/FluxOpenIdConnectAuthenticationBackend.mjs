@@ -1,16 +1,16 @@
-import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http-api/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { CONTENT_TYPE_HTML } from "../../../flux-http-api/src/ContentType/CONTENT_TYPE.mjs";
-import { HttpClientRequest } from "../../../flux-http-api/src/Client/HttpClientRequest.mjs";
-import { HttpServerResponse } from "../../../flux-http-api/src/Server/HttpServerResponse.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { CONTENT_TYPE_HTML } from "../../../flux-http/src/ContentType/CONTENT_TYPE.mjs";
+import { HttpClientRequest } from "../../../flux-http/src/Client/HttpClientRequest.mjs";
+import { HttpServerResponse } from "../../../flux-http/src/Server/HttpServerResponse.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND.mjs";
-import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http-api/src/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_POST } from "../../../flux-http-api/src/Method/METHOD.mjs";
-import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../flux-http-api/src/Cookie/SET_COOKIE_OPTION.mjs";
-import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../flux-http-api/src/Status/STATUS_CODE.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http/src/Header/HEADER.mjs";
+import { METHOD_GET, METHOD_POST } from "../../../flux-http/src/Method/METHOD.mjs";
+import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../flux-http/src/Cookie/SET_COOKIE_OPTION.mjs";
+import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../flux-http/src/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
-/** @typedef {import("../../../flux-http-api/src/FluxHttpApi.mjs").FluxHttpApi} FluxHttpApi */
-/** @typedef {import("../../../flux-http-api/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../../../flux-http/src/FluxHttp.mjs").FluxHttp} FluxHttp */
+/** @typedef {import("../../../flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
 /**
@@ -26,9 +26,9 @@ export class FluxOpenIdConnectAuthenticationBackend {
      */
     #cookie_name;
     /**
-     * @type {FluxHttpApi}
+     * @type {FluxHttp}
      */
-    #flux_http_api;
+    #flux_http;
     /**
      * @type {string}
      */
@@ -79,7 +79,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
     #set_cookie_options;
 
     /**
-     * @param {FluxHttpApi} flux_http_api
+     * @param {FluxHttp} flux_http
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
@@ -94,9 +94,9 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @param {string | null} redirect_after_logout_url
      * @returns {FluxOpenIdConnectAuthenticationBackend}
      */
-    static new(flux_http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
+    static new(flux_http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         return new this(
-            flux_http_api,
+            flux_http,
             provider_url,
             provider_client_id,
             provider_client_secret,
@@ -113,7 +113,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
     }
 
     /**
-     * @param {FluxHttpApi} flux_http_api
+     * @param {FluxHttp} flux_http
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
@@ -128,8 +128,8 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @param {string} redirect_after_logout_url
      * @private
      */
-    constructor(flux_http_api, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
-        this.#flux_http_api = flux_http_api;
+    constructor(flux_http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
+        this.#flux_http = flux_http;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;
         this.#provider_client_secret = provider_client_secret;
@@ -204,7 +204,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         if (cookies !== null && request._res !== null) {
-            await this.#flux_http_api._setCookies(
+            await this.#flux_http._setCookies(
                 request._res,
                 cookies
             );
@@ -218,7 +218,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @returns {Promise<HttpServerResponse>}
      */
     async #callback(request) {
-        const response = await this.#flux_http_api.validateMethods(
+        const response = await this.#flux_http.validateMethods(
             request,
             [
                 METHOD_GET
@@ -266,7 +266,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error("Invalid state");
             }
 
-            const _response = await this.#flux_http_api.request(
+            const _response = await this.#flux_http.request(
                 HttpClientRequest.urlSearchParams(
                     new URL((await this.#getProviderConfig()).token_endpoint),
                     new URLSearchParams({
@@ -364,7 +364,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      */
     async #getProviderConfig() {
         if (this.#provider_config === null) {
-            this.#provider_config ??= await (await this.#flux_http_api.request(
+            this.#provider_config ??= await (await this.#flux_http.request(
                 HttpClientRequest.new(
                     new URL(`${this.#provider_url}/.well-known/openid-configuration`),
                     null,
@@ -464,7 +464,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @returns {Promise<HttpServerResponse>}
      */
     async #login(request) {
-        const response = await this.#flux_http_api.validateMethods(
+        const response = await this.#flux_http.validateMethods(
             request,
             [
                 METHOD_GET
@@ -523,7 +523,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @returns {Promise<HttpServerResponse>}
      */
     async #logout(request) {
-        const response = await this.#flux_http_api.validateMethods(
+        const response = await this.#flux_http.validateMethods(
             request,
             [
                 METHOD_GET
@@ -565,7 +565,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         try {
-            await this.#flux_http_api.request(
+            await this.#flux_http.request(
                 HttpClientRequest.urlSearchParams(
                     new URL((await this.#getProviderConfig()).revocation_endpoint),
                     new URLSearchParams({
@@ -694,7 +694,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         try {
-            session.user_infos ??= await (await this.#flux_http_api.request(
+            session.user_infos ??= await (await this.#flux_http.request(
                 HttpClientRequest.new(
                     new URL((await this.#getProviderConfig()).userinfo_endpoint),
                     null,
