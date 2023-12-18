@@ -1,9 +1,8 @@
 import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { CONTENT_TYPE_HTML } from "../../../flux-http/src/ContentType/CONTENT_TYPE.mjs";
-import { HttpClientRequest } from "../../../flux-http/src/Client/HttpClientRequest.mjs";
 import { HttpServerResponse } from "../../../flux-http/src/Server/HttpServerResponse.mjs";
+import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../flux-http/src/ContentType/CONTENT_TYPE.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND.mjs";
-import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http/src/Header/HEADER.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http/src/Header/HEADER.mjs";
 import { METHOD_GET, METHOD_POST } from "../../../flux-http/src/Method/METHOD.mjs";
 import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../flux-http/src/Cookie/SET_COOKIE_OPTION.mjs";
 import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../flux-http/src/Status/STATUS_CODE.mjs";
@@ -266,29 +265,27 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error("Invalid state");
             }
 
-            const _response = await this.#flux_http.request(
-                HttpClientRequest.urlSearchParams(
-                    new URL((await this.#getProviderConfig()).token_endpoint),
-                    new URLSearchParams({
-                        code: request.url.searchParams.get("code"),
-                        code_verifier: session.code_verifier,
-                        grant_type: "authorization_code",
-                        redirect_uri: this.#getProviderRedirectUri(
-                            request
-                        )
-                    }),
-                    METHOD_POST,
-                    {
-                        [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
-                    },
-                    null,
-                    null,
-                    null,
-                    this.#provider_https_certificate
-                )
-            );
+            const _response = await fetch((await this.#getProviderConfig()).token_endpoint, {
+                method: METHOD_POST,
+                headers: {
+                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
+                },
+                body: new URLSearchParams({
+                    code: request.url.searchParams.get("code"),
+                    code_verifier: session.code_verifier,
+                    grant_type: "authorization_code",
+                    redirect_uri: this.#getProviderRedirectUri(
+                        request
+                    )
+                }),
+                ...await this.#getProviderHttpsCertificateOptions()
+            });
 
-            token = await _response.body.json() ?? {};
+            if (!(_response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
+                throw _response;
+            }
+
+            token = await _response.json() ?? {};
 
             if ((token.error_description ?? null) !== null) {
                 throw new Error(token.error_description);
@@ -297,8 +294,8 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 throw new Error(token.error);
             }
 
-            if (!_response.status_code_is_ok) {
-                return Promise.reject(_response);
+            if (!_response.ok) {
+                throw _response;
             }
 
             if ((token.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
@@ -364,18 +361,15 @@ export class FluxOpenIdConnectAuthenticationBackend {
      */
     async #getProviderConfig() {
         if (this.#provider_config === null) {
-            this.#provider_config ??= await (await this.#flux_http.request(
-                HttpClientRequest.new(
-                    new URL(`${this.#provider_url}/.well-known/openid-configuration`),
-                    null,
-                    null,
-                    null,
-                    true,
-                    null,
-                    null,
-                    this.#provider_https_certificate
-                )
-            )).body.json() ?? {};
+            const response = await fetch(`${this.#provider_url}/.well-known/openid-configuration`, {
+                ...await this.#getProviderHttpsCertificateOptions()
+            });
+
+            if (!response.ok || !(response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
+                throw response;
+            }
+
+            this.#provider_config = await response.json() ?? {};
 
             if (!(this.#provider_config.code_challenge_methods_supported?.includes("S256") ?? false)) {
                 throw new Error("Provider does not supports code challenge S256");
@@ -399,6 +393,19 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         return this.#provider_config;
+    }
+
+    /**
+     * @returns {Promise<{[key: string]: *} | null>}
+     */
+    async #getProviderHttpsCertificateOptions() {
+        return this.#provider_https_certificate !== null ? {
+            dispatcher: new (await import("undici")).Agent({
+                tls: {
+                    ca: this.#provider_https_certificate
+                }
+            })
+        } : null;
     }
 
     /**
@@ -565,23 +572,23 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         try {
-            await this.#flux_http.request(
-                HttpClientRequest.urlSearchParams(
-                    new URL((await this.#getProviderConfig()).revocation_endpoint),
-                    new URLSearchParams({
-                        token: session.access_token,
-                        token_type_hint: "access_token"
-                    }),
-                    METHOD_POST,
-                    {
-                        [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
-                    },
-                    true,
-                    false,
-                    null,
-                    this.#provider_https_certificate
-                )
-            );
+            const _response = await fetch((await this.#getProviderConfig()).revocation_endpoint, {
+                method: METHOD_POST,
+                headers: {
+                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
+                },
+                body: new URLSearchParams({
+                    token: session.access_token,
+                    token_type_hint: "access_token"
+                }),
+                ...await this.#getProviderHttpsCertificateOptions()
+            });
+
+            if (!_response.ok) {
+                throw _response;
+            }
+
+            await _response.body?.cancel();
         } catch (error) {
             console.error(error);
         }
@@ -694,20 +701,20 @@ export class FluxOpenIdConnectAuthenticationBackend {
         }
 
         try {
-            session.user_infos ??= await (await this.#flux_http.request(
-                HttpClientRequest.new(
-                    new URL((await this.#getProviderConfig()).userinfo_endpoint),
-                    null,
-                    null,
-                    {
+            if ((session.user_infos ?? null) === null) {
+                const response = await fetch((await this.#getProviderConfig()).userinfo_endpoint, {
+                    headers: {
                         [HEADER_AUTHORIZATION]: `${session.token_type} ${session.access_token}`
                     },
-                    true,
-                    null,
-                    null,
-                    this.#provider_https_certificate
-                )
-            )).body.json() ?? {};
+                    ...await this.#getProviderHttpsCertificateOptions()
+                });
+
+                if (!response.ok || !(response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
+                    throw response;
+                }
+
+                session.user_infos = await response.json() ?? {};
+            }
         } catch (error) {
             console.error(error);
 
