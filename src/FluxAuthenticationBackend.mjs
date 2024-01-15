@@ -1,5 +1,5 @@
-/** @typedef {import("../../flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
-/** @typedef {import("../../flux-http/src/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
+/** @typedef {import("flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("flux-http/src/Server/HttpServerResponse.mjs").HttpServerResponse} HttpServerResponse */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
 /**

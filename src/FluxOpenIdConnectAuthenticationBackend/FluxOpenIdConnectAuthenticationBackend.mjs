@@ -1,15 +1,15 @@
-import { AUTHORIZATION_SCHEMA_BASIC } from "../../../flux-http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { HttpServerResponse } from "../../../flux-http/src/Server/HttpServerResponse.mjs";
-import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "../../../flux-http/src/ContentType/CONTENT_TYPE.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "flux-http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { HttpServerResponse } from "flux-http/src/Server/HttpServerResponse.mjs";
+import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "flux-http/src/ContentType/CONTENT_TYPE.mjs";
 import { FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_ROUTE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL, FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "./FLUX_OPEN_ID_CONNECT_AUTHENTICATION_BACKEND.mjs";
-import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "../../../flux-http/src/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_POST } from "../../../flux-http/src/Method/METHOD.mjs";
-import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "../../../flux-http/src/Cookie/SET_COOKIE_OPTION.mjs";
-import { STATUS_CODE_401, STATUS_CODE_403 } from "../../../flux-http/src/Status/STATUS_CODE.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL } from "flux-http/src/Header/HEADER.mjs";
+import { METHOD_GET, METHOD_POST } from "flux-http/src/Method/METHOD.mjs";
+import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "flux-http/src/Cookie/SET_COOKIE_OPTION.mjs";
+import { STATUS_CODE_401, STATUS_CODE_403 } from "flux-http/src/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
-/** @typedef {import("../../../flux-http/src/FluxHttp.mjs").FluxHttp} FluxHttp */
-/** @typedef {import("../../../flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("flux-http/src/FluxHttp.mjs").FluxHttp} FluxHttp */
+/** @typedef {import("flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
 /**
@@ -400,7 +400,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      */
     async #getProviderHttpsCertificateOptions() {
         return this.#provider_https_certificate !== null ? {
-            dispatcher: new (await import("undici")).Agent({
+            dispatcher: new (await import("undici/lib/agent.js")).Agent({
                 tls: {
                     ca: this.#provider_https_certificate
                 }

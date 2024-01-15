@@ -6,6 +6,14 @@ Changes:
 
 \-
 
+## v2024-01-15-1
+
+Changes:
+
+- Load libraries using NodeJS's module resolver
+- Change `DEFAULT_REDIRECT_AFTER_LOGIN_URL` to `/Authentication/AuthenticationSuccess.html`
+- Minimal local `undici` load
+
 ## v2023-12-18-1
 
 Changes:
