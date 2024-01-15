@@ -6,6 +6,12 @@ Changes:
 
 \-
 
+## v2024-01-15-2
+
+Changes:
+
+- Fix "Minimal local `undici` load"
+
 ## v2024-01-15-1
 
 Changes:

@@ -400,7 +400,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
      */
     async #getProviderHttpsCertificateOptions() {
         return this.#provider_https_certificate !== null ? {
-            dispatcher: new (await import("undici/lib/agent.js")).Agent({
+            dispatcher: new (await import("undici/lib/agent.js")).default({
                 tls: {
                     ca: this.#provider_https_certificate
                 }
