@@ -23,9 +23,9 @@ export class FluxBasicAuthenticationBackend {
     /**
      * @param {FluxHttp} flux_http
      * @param {{[key: string]: string}} users
-     * @returns {FluxBasicAuthenticationBackend}
+     * @returns {Promise<FluxBasicAuthenticationBackend>}
      */
-    static new(flux_http, users) {
+    static async new(flux_http, users) {
         return new this(
             flux_http,
             users

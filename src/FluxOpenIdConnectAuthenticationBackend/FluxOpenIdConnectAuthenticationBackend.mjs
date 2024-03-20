@@ -91,9 +91,9 @@ export class FluxOpenIdConnectAuthenticationBackend {
      * @param {string | null} frontend_base_route
      * @param {string | null} redirect_after_login_url
      * @param {string | null} redirect_after_logout_url
-     * @returns {FluxOpenIdConnectAuthenticationBackend}
+     * @returns {Promise<FluxOpenIdConnectAuthenticationBackend>}
      */
-    static new(flux_http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
+    static async new(flux_http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         return new this(
             flux_http,
             provider_url,
