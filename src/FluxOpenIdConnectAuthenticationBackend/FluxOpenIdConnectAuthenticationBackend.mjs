@@ -245,24 +245,24 @@ export class FluxOpenIdConnectAuthenticationBackend {
             }
 
             if (session_number === null || session === null) {
-                throw new Error("Invalid session");
+                throw new Error("Invalid session!");
             }
 
             if (!request.url.searchParams.has("code")) {
-                throw new Error("Invalid code");
+                throw new Error("Invalid code!");
             }
             if (!request.url.searchParams.has("state")) {
-                throw new Error("Invalid state");
+                throw new Error("Invalid state!");
             }
 
             if ((session.code_verifier ?? null) === null) {
-                throw new Error("Invalid code verifier");
+                throw new Error("Invalid code verifier!");
             }
             if ((session.nonce ?? null) === null) {
-                throw new Error("Invalid nonce");
+                throw new Error("Invalid nonce!");
             }
             if ((session.state ?? null) === null || session.state !== request.url.searchParams.get("state")) {
-                throw new Error("Invalid state");
+                throw new Error("Invalid state!");
             }
 
             const _response = await fetch((await this.#getProviderConfig()).token_endpoint, {
@@ -299,30 +299,30 @@ export class FluxOpenIdConnectAuthenticationBackend {
             }
 
             if ((token.access_token ?? null) === null || (token.expires_in ?? null) === null || (token.id_token ?? null) === null || (token.token_type ?? null) === null) {
-                throw new Error("Invalid token");
+                throw new Error("Invalid token!");
             }
 
             const id_token = token.id_token.split(".");
             if (id_token.length !== 3) {
-                throw new Error("Invalid id token");
+                throw new Error("Invalid id token!");
             }
 
             payload = JSON.parse(atob(id_token[1])) ?? {};
 
             if ((payload.aud ?? null) === null || !(payload.aud === this.#provider_client_id || (Array.isArray(payload.aud) && payload.aud.includes(this.#provider_client_id)))) {
-                throw new Error("Invalid aud");
+                throw new Error("Invalid aud!");
             }
 
             if ((payload.iat ?? null) === null) {
-                throw new Error("Invalid iat");
+                throw new Error("Invalid iat!");
             }
 
             if ((payload.iss ?? null) === null || payload.iss.replace(/\/$/, "") !== this.#provider_url) {
-                throw new Error("Invalid iss");
+                throw new Error("Invalid iss!");
             }
 
             if ((payload.nonce ?? null) === null || payload.nonce !== session.nonce) {
-                throw new Error("Invalid nonce");
+                throw new Error("Invalid nonce!");
             }
 
         } catch (error) {
@@ -372,23 +372,23 @@ export class FluxOpenIdConnectAuthenticationBackend {
             this.#provider_config = await response.json() ?? {};
 
             if (!(this.#provider_config.code_challenge_methods_supported?.includes("S256") ?? false)) {
-                throw new Error("Provider does not supports code challenge S256");
+                throw new Error("Provider does not supports code challenge S256!");
             }
 
             if (!(this.#provider_config.grant_types_supported?.includes("authorization_code") ?? false)) {
-                throw new Error("Provider does not supports grant type authorization_code");
+                throw new Error("Provider does not supports grant type authorization_code!");
             }
 
             if (!(this.#provider_config.response_modes_supported?.includes("query") ?? true)) {
-                throw new Error("Provider does not supports response mode query");
+                throw new Error("Provider does not supports response mode query!");
             }
 
             if (!(this.#provider_config.response_types_supported?.includes("code") ?? false)) {
-                throw new Error("Provider does not supports response type code");
+                throw new Error("Provider does not supports response type code!");
             }
 
             if (!(this.#provider_config.token_endpoint_auth_methods_supported?.includes("client_secret_basic") ?? true)) {
-                throw new Error("Provider does not supports token endpoint auth method client_secret_basic");
+                throw new Error("Provider does not supports token endpoint auth method client_secret_basic!");
             }
         }
 
