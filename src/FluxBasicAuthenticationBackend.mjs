@@ -63,14 +63,14 @@ export class FluxBasicAuthenticationBackend {
             console.error(error);
 
             return HttpServerResponse.text(
-                "Invalid authorization parameters",
+                "Invalid authorization parameters!",
                 STATUS_CODE_400
             );
         }
 
         if (!parameters.includes(":")) {
             return HttpServerResponse.text(
-                "Invalid authorization parameters",
+                "Invalid authorization parameters!",
                 STATUS_CODE_400
             );
         }
@@ -83,14 +83,14 @@ export class FluxBasicAuthenticationBackend {
 
         if (user === "" || password === "") {
             return HttpServerResponse.text(
-                "Invalid authorization parameters",
+                "Invalid authorization parameters!",
                 STATUS_CODE_400
             );
         }
 
         if (!Object.hasOwn(this.#users, user) || this.#users[user] !== password) {
             return HttpServerResponse.text(
-                "No access",
+                "No access!",
                 STATUS_CODE_403
             );
         }

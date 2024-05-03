@@ -192,7 +192,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
                 );
             } else {
                 return HttpServerResponse.text(
-                    "Authorization needed",
+                    "Authorization needed!",
                     STATUS_CODE_401,
                     {
                         [HEADER_X_FLUX_AUTHENTICATION_FRONTEND_URL]: frontend_url
@@ -329,7 +329,7 @@ export class FluxOpenIdConnectAuthenticationBackend {
             console.error(error);
 
             return HttpServerResponse.text(
-                "Invalid authorization",
+                "Invalid authorization!",
                 STATUS_CODE_403,
                 null,
                 this.#setSession(
