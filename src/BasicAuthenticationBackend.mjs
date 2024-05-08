@@ -1,44 +1,44 @@
-import { AUTHORIZATION_SCHEMA_BASIC } from "flux-http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { HttpServerResponse } from "flux-http/src/Server/HttpServerResponse.mjs";
-import { STATUS_CODE_400, STATUS_CODE_403 } from "flux-http/src/Status/STATUS_CODE.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { HttpServerResponse } from "http/src/Server/HttpServerResponse.mjs";
+import { STATUS_CODE_400, STATUS_CODE_403 } from "http/src/Status/STATUS_CODE.mjs";
 
-/** @typedef {import("./FluxAuthenticationBackend.mjs").FluxAuthenticationBackend} FluxAuthenticationBackend */
-/** @typedef {import("flux-http/src/FluxHttp.mjs").FluxHttp} FluxHttp */
-/** @typedef {import("flux-http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("./AuthenticationBackend.mjs").AuthenticationBackend} AuthenticationBackend */
+/** @typedef {import("http/src/Http.mjs").Http} Http */
+/** @typedef {import("http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
 /**
- * @implements {FluxAuthenticationBackend}
+ * @implements {AuthenticationBackend}
  */
-export class FluxBasicAuthenticationBackend {
+export class BasicAuthenticationBackend {
     /**
-     * @type {FluxHttp}
+     * @type {Http}
      */
-    #flux_http;
+    #http;
     /**
      * @type {{[key: string]: string}}
      */
     #users;
 
     /**
-     * @param {FluxHttp} flux_http
+     * @param {Http} http
      * @param {{[key: string]: string}} users
-     * @returns {Promise<FluxBasicAuthenticationBackend>}
+     * @returns {Promise<BasicAuthenticationBackend>}
      */
-    static async new(flux_http, users) {
+    static async new(http, users) {
         return new this(
-            flux_http,
+            http,
             users
         );
     }
 
     /**
-     * @param {FluxHttp} flux_http
+     * @param {Http} http
      * @param {{[key: string]: string}} users
      * @private
      */
-    constructor(flux_http, users) {
-        this.#flux_http = flux_http;
+    constructor(http, users) {
+        this.#http = http;
         this.#users = users;
     }
 
@@ -47,7 +47,7 @@ export class FluxBasicAuthenticationBackend {
      * @returns {Promise<HttpServerResponse | UserInfo>}
      */
     async handleAuthentication(request) {
-        const authorization_parameters = await this.#flux_http.getAuthorizationParameters(
+        const authorization_parameters = await this.#http.getAuthorizationParameters(
             request,
             AUTHORIZATION_SCHEMA_BASIC
         );
