@@ -1,15 +1,15 @@
-import { AUTHORIZATION_SCHEMA_BASIC } from "http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { HttpServerResponse } from "http/src/Server/HttpServerResponse.mjs";
-import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "http/src/ContentType/CONTENT_TYPE.mjs";
-import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_AUTHENTICATION_FRONTEND_URL } from "http/src/Header/HEADER.mjs";
-import { METHOD_GET, METHOD_POST } from "http/src/Method/METHOD.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "http/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { HttpServerResponse } from "http/Server/HttpServerResponse.mjs";
+import { CONTENT_TYPE_HTML, CONTENT_TYPE_JSON } from "http/ContentType/CONTENT_TYPE.mjs";
+import { HEADER_ACCEPT, HEADER_AUTHORIZATION, HEADER_CONTENT_TYPE, HEADER_X_AUTHENTICATION_FRONTEND_URL } from "http/Header/HEADER.mjs";
+import { METHOD_GET, METHOD_POST } from "http/Method/METHOD.mjs";
 import { OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_FRONTEND_BASE_ROUTE, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL, OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL } from "./OPEN_ID_CONNECT_AUTHENTICATION_BACKEND.mjs";
-import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "http/src/Cookie/SET_COOKIE_OPTION.mjs";
-import { STATUS_CODE_401, STATUS_CODE_403 } from "http/src/Status/STATUS_CODE.mjs";
+import { SET_COOKIE_OPTION_EXPIRES, SET_COOKIE_OPTION_MAX_AGE } from "http/Cookie/SET_COOKIE_OPTION.mjs";
+import { STATUS_CODE_401, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("../AuthenticationBackend.mjs").AuthenticationBackend} AuthenticationBackend */
-/** @typedef {import("http/src/Http.mjs").Http} Http */
-/** @typedef {import("http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("http/Http.mjs").Http} Http */
+/** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
 /**

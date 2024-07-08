@@ -1,10 +1,10 @@
-import { AUTHORIZATION_SCHEMA_BASIC } from "http/src/Authorization/AUTHORIZATION_SCHEMA.mjs";
-import { HttpServerResponse } from "http/src/Server/HttpServerResponse.mjs";
-import { STATUS_CODE_400, STATUS_CODE_403 } from "http/src/Status/STATUS_CODE.mjs";
+import { AUTHORIZATION_SCHEMA_BASIC } from "http/Authorization/AUTHORIZATION_SCHEMA.mjs";
+import { HttpServerResponse } from "http/Server/HttpServerResponse.mjs";
+import { STATUS_CODE_400, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 
 /** @typedef {import("./AuthenticationBackend.mjs").AuthenticationBackend} AuthenticationBackend */
-/** @typedef {import("http/src/Http.mjs").Http} Http */
-/** @typedef {import("http/src/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("http/Http.mjs").Http} Http */
+/** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
 /**
