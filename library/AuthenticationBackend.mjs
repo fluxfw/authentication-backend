@@ -3,13 +3,5 @@
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
 /**
- * @interface
+ * @typedef {{handleAuthentication: (request: HttpServerRequest) => Promise<HttpServerResponse | UserInfo>}} AuthenticationBackend
  */
-export class AuthenticationBackend {
-    /**
-     * @param {HttpServerRequest} request
-     * @returns {Promise<HttpServerResponse | UserInfo>}
-     * @abstract
-     */
-    handleAuthentication(request) { }
-}

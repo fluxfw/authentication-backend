@@ -12,9 +12,6 @@ import { STATUS_CODE_401, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 /** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
-/**
- * @implements {AuthenticationBackend}
- */
 export class OpenIdConnectAuthenticationBackend {
     /**
      * @type {string}
@@ -91,7 +88,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string | null} frontend_base_route
      * @param {string | null} redirect_after_login_url
      * @param {string | null} redirect_after_logout_url
-     * @returns {Promise<OpenIdConnectAuthenticationBackend>}
+     * @returns {Promise<AuthenticationBackend>}
      */
     static async new(http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         return new this(

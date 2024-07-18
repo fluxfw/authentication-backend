@@ -7,9 +7,6 @@ import { STATUS_CODE_400, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 /** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
-/**
- * @implements {AuthenticationBackend}
- */
 export class BasicAuthenticationBackend {
     /**
      * @type {Http}
@@ -23,7 +20,7 @@ export class BasicAuthenticationBackend {
     /**
      * @param {Http} http
      * @param {{[key: string]: string}} users
-     * @returns {Promise<BasicAuthenticationBackend>}
+     * @returns {Promise<AuthenticationBackend>}
      */
     static async new(http, users) {
         return new this(
