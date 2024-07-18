@@ -68,7 +68,7 @@ export class OpenIdConnectAuthenticationBackend {
     /**
      * @type {Map<string, [{[key: string]: *}, [number, number]]>}
      */
-    #sessions;
+    #sessions = new Map();
     /**
      * @type {{[key: string]: *} | null}
      */
@@ -91,7 +91,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @returns {Promise<AuthenticationBackend>}
      */
     static async new(http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
-        return new this(
+        const authentication_backend = new this(
             http,
             provider_url,
             provider_client_id,
@@ -106,6 +106,12 @@ export class OpenIdConnectAuthenticationBackend {
             redirect_after_login_url ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGIN_URL,
             redirect_after_logout_url ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_REDIRECT_AFTER_LOGOUT_URL
         );
+
+        setInterval(() => {
+            authentication_backend.#removeInvalidSessions();
+        }, 5 * 60 * 1_000);
+
+        return authentication_backend;
     }
 
     /**
@@ -138,11 +144,6 @@ export class OpenIdConnectAuthenticationBackend {
         this.#frontend_base_route = frontend_base_route;
         this.#redirect_after_login_url = redirect_after_login_url;
         this.#redirect_after_logout_url = redirect_after_logout_url;
-        this.#sessions = new Map();
-
-        setInterval(() => {
-            this.#removeInvalidSessions();
-        }, 5 * 60 * 1_000);
     }
 
     /**
