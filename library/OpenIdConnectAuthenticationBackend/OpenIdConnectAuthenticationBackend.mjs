@@ -10,6 +10,7 @@ import { STATUS_CODE_401, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 /** @typedef {import("../AuthenticationBackend.mjs").AuthenticationBackend} AuthenticationBackend */
 /** @typedef {import("http/Http.mjs").Http} Http */
 /** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("../Logger/Logger.mjs").Logger} Logger */
 /** @typedef {import("../UserInfo.mjs").UserInfo} UserInfo */
 
 export class OpenIdConnectAuthenticationBackend {
@@ -29,6 +30,10 @@ export class OpenIdConnectAuthenticationBackend {
      * @type {Http}
      */
     #http;
+    /**
+     * @type {Logger}
+     */
+    #logger;
     /**
      * @type {string}
      */
@@ -79,6 +84,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
+     * @param {Logger | null} logger
      * @param {string | null} provider_redirect_uri
      * @param {string | null} provider_scope
      * @param {string | null} provider_https_certificate
@@ -90,12 +96,13 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string | null} redirect_after_logout_url
      * @returns {Promise<AuthenticationBackend>}
      */
-    static async new(http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
+    static async new(http, provider_url, provider_client_id, provider_client_secret, logger = null, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         const authentication_backend = new this(
             http,
             provider_url,
             provider_client_id,
             provider_client_secret,
+            logger ?? console,
             provider_redirect_uri,
             provider_scope ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE,
             provider_https_certificate,
@@ -119,6 +126,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string} provider_url
      * @param {string} provider_client_id
      * @param {string} provider_client_secret
+     * @param {Logger} logger
      * @param {string | null} provider_redirect_uri
      * @param {string} provider_scope
      * @param {string | null} provider_https_certificate
@@ -130,11 +138,12 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string} redirect_after_logout_url
      * @private
      */
-    constructor(http, provider_url, provider_client_id, provider_client_secret, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
+    constructor(http, provider_url, provider_client_id, provider_client_secret, logger, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
         this.#http = http;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;
         this.#provider_client_secret = provider_client_secret;
+        this.#logger = logger;
         this.#provider_redirect_uri = provider_redirect_uri;
         this.#provider_scope = provider_scope;
         this.#provider_https_certificate = provider_https_certificate;
@@ -324,7 +333,9 @@ export class OpenIdConnectAuthenticationBackend {
             }
 
         } catch (error) {
-            console.error(error);
+            this.#logger.error(
+                error
+            );
 
             return HttpServerResponse.text(
                 "Invalid authorization!",
@@ -588,7 +599,9 @@ export class OpenIdConnectAuthenticationBackend {
 
             await _response.body?.cancel();
         } catch (error) {
-            console.error(error);
+            this.#logger.error(
+                error
+            );
         }
 
         return HttpServerResponse.redirect(
@@ -714,7 +727,9 @@ export class OpenIdConnectAuthenticationBackend {
                 session.user_infos = await response.json() ?? {};
             }
         } catch (error) {
-            console.error(error);
+            this.#logger.error(
+                error
+            );
 
             return [
                 null,

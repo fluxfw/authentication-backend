@@ -5,6 +5,7 @@ import { STATUS_CODE_400, STATUS_CODE_403 } from "http/Status/STATUS_CODE.mjs";
 /** @typedef {import("./AuthenticationBackend.mjs").AuthenticationBackend} AuthenticationBackend */
 /** @typedef {import("http/Http.mjs").Http} Http */
 /** @typedef {import("http/Server/HttpServerRequest.mjs").HttpServerRequest} HttpServerRequest */
+/** @typedef {import("./Logger/Logger.mjs").Logger} Logger */
 /** @typedef {import("./UserInfo.mjs").UserInfo} UserInfo */
 
 export class BasicAuthenticationBackend {
@@ -13,6 +14,10 @@ export class BasicAuthenticationBackend {
      */
     #http;
     /**
+     * @type {Logger}
+     */
+    #logger;
+    /**
      * @type {{[key: string]: string}}
      */
     #users;
@@ -20,23 +25,27 @@ export class BasicAuthenticationBackend {
     /**
      * @param {Http} http
      * @param {{[key: string]: string}} users
+     * @param {Logger | null} logger
      * @returns {Promise<AuthenticationBackend>}
      */
-    static async new(http, users) {
+    static async new(http, users, logger = null) {
         return new this(
             http,
-            users
+            users,
+            logger ?? console
         );
     }
 
     /**
      * @param {Http} http
      * @param {{[key: string]: string}} users
+     * @param {Logger} logger
      * @private
      */
-    constructor(http, users) {
+    constructor(http, users, logger) {
         this.#http = http;
         this.#users = users;
+        this.#logger = logger;
     }
 
     /**
@@ -57,7 +66,9 @@ export class BasicAuthenticationBackend {
         try {
             parameters = atob(authorization_parameters);
         } catch (error) {
-            console.error(error);
+            this.#logger.error(
+                error
+            );
 
             return HttpServerResponse.text(
                 "Invalid authorization parameters!",
