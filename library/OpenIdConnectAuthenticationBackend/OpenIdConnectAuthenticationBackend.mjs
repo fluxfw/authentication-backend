@@ -273,10 +273,6 @@ export class OpenIdConnectAuthenticationBackend {
             }
 
             const _response = await fetch((await this.#getProviderConfig()).token_endpoint, {
-                method: METHOD_POST,
-                headers: {
-                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
-                },
                 body: new URLSearchParams({
                     code: request.url.searchParams.get("code"),
                     code_verifier: session.code_verifier,
@@ -285,6 +281,10 @@ export class OpenIdConnectAuthenticationBackend {
                         request
                     )
                 }),
+                headers: {
+                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
+                },
+                method: METHOD_POST,
                 ...await this.#getProviderHttpsCertificateOptions()
             });
 
@@ -370,9 +370,7 @@ export class OpenIdConnectAuthenticationBackend {
      */
     async #getProviderConfig() {
         if (this.#provider_config === null) {
-            const response = await fetch(`${this.#provider_url}/.well-known/openid-configuration`, {
-                ...await this.#getProviderHttpsCertificateOptions()
-            });
+            const response = await fetch(`${this.#provider_url}/.well-known/openid-configuration`, await this.#getProviderHttpsCertificateOptions());
 
             if (!response.ok || !(response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
                 throw response;
@@ -582,14 +580,14 @@ export class OpenIdConnectAuthenticationBackend {
 
         try {
             const _response = await fetch((await this.#getProviderConfig()).revocation_endpoint, {
-                method: METHOD_POST,
-                headers: {
-                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
-                },
                 body: new URLSearchParams({
                     token: session.access_token,
                     token_type_hint: "access_token"
                 }),
+                headers: {
+                    [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
+                },
+                method: METHOD_POST,
                 ...await this.#getProviderHttpsCertificateOptions()
             });
 
