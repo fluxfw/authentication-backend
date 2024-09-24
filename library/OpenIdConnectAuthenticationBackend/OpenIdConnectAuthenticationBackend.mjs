@@ -49,10 +49,6 @@ export class OpenIdConnectAuthenticationBackend {
     /**
      * @type {string | null}
      */
-    #provider_https_certificate;
-    /**
-     * @type {string | null}
-     */
     #provider_redirect_uri;
     /**
      * @type {string}
@@ -87,7 +83,6 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {Logger | null} logger
      * @param {string | null} provider_redirect_uri
      * @param {string | null} provider_scope
-     * @param {string | null} provider_https_certificate
      * @param {string | null} cookie_name
      * @param {{[key: string]: *} | null} set_cookie_options
      * @param {string | null} base_route
@@ -96,7 +91,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string | null} redirect_after_logout_url
      * @returns {Promise<AuthenticationBackend>}
      */
-    static async new(http, provider_url, provider_client_id, provider_client_secret, logger = null, provider_redirect_uri = null, provider_scope = null, provider_https_certificate = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
+    static async new(http, provider_url, provider_client_id, provider_client_secret, logger = null, provider_redirect_uri = null, provider_scope = null, cookie_name = null, set_cookie_options = null, base_route = null, frontend_base_route = null, redirect_after_login_url = null, redirect_after_logout_url = null) {
         const authentication_backend = new this(
             http,
             provider_url,
@@ -105,7 +100,6 @@ export class OpenIdConnectAuthenticationBackend {
             logger ?? console,
             provider_redirect_uri,
             provider_scope ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_PROVIDER_SCOPE,
-            provider_https_certificate,
             cookie_name ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_COOKIE_NAME,
             set_cookie_options,
             base_route ?? OPEN_ID_CONNECT_AUTHENTICATION_BACKEND_DEFAULT_BASE_ROUTE,
@@ -129,7 +123,6 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {Logger} logger
      * @param {string | null} provider_redirect_uri
      * @param {string} provider_scope
-     * @param {string | null} provider_https_certificate
      * @param {string} cookie_name
      * @param {{[key: string]: *} | null} set_cookie_options
      * @param {string} base_route
@@ -138,7 +131,7 @@ export class OpenIdConnectAuthenticationBackend {
      * @param {string} redirect_after_logout_url
      * @private
      */
-    constructor(http, provider_url, provider_client_id, provider_client_secret, logger, provider_redirect_uri, provider_scope, provider_https_certificate, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
+    constructor(http, provider_url, provider_client_id, provider_client_secret, logger, provider_redirect_uri, provider_scope, cookie_name, set_cookie_options, base_route, frontend_base_route, redirect_after_login_url, redirect_after_logout_url) {
         this.#http = http;
         this.#provider_url = provider_url;
         this.#provider_client_id = provider_client_id;
@@ -146,7 +139,6 @@ export class OpenIdConnectAuthenticationBackend {
         this.#logger = logger;
         this.#provider_redirect_uri = provider_redirect_uri;
         this.#provider_scope = provider_scope;
-        this.#provider_https_certificate = provider_https_certificate;
         this.#cookie_name = cookie_name;
         this.#set_cookie_options = set_cookie_options;
         this.#base_route = base_route;
@@ -284,8 +276,7 @@ export class OpenIdConnectAuthenticationBackend {
                 headers: {
                     [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
                 },
-                method: METHOD_POST,
-                ...await this.#getProviderHttpsCertificateOptions()
+                method: METHOD_POST
             });
 
             if (!(_response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
@@ -370,7 +361,7 @@ export class OpenIdConnectAuthenticationBackend {
      */
     async #getProviderConfig() {
         if (this.#provider_config === null) {
-            const response = await fetch(`${this.#provider_url}/.well-known/openid-configuration`, await this.#getProviderHttpsCertificateOptions());
+            const response = await fetch(`${this.#provider_url}/.well-known/openid-configuration`);
 
             if (!response.ok || !(response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
                 throw response;
@@ -400,19 +391,6 @@ export class OpenIdConnectAuthenticationBackend {
         }
 
         return this.#provider_config;
-    }
-
-    /**
-     * @returns {Promise<{[key: string]: *} | null>}
-     */
-    async #getProviderHttpsCertificateOptions() {
-        return this.#provider_https_certificate !== null ? {
-            dispatcher: new (await import("undici/lib/agent.js")).default({
-                tls: {
-                    ca: this.#provider_https_certificate
-                }
-            })
-        } : null;
     }
 
     /**
@@ -587,8 +565,7 @@ export class OpenIdConnectAuthenticationBackend {
                 headers: {
                     [HEADER_AUTHORIZATION]: `${AUTHORIZATION_SCHEMA_BASIC} ${btoa(`${this.#provider_client_id}:${this.#provider_client_secret}`)}`
                 },
-                method: METHOD_POST,
-                ...await this.#getProviderHttpsCertificateOptions()
+                method: METHOD_POST
             });
 
             if (!_response.ok) {
@@ -714,8 +691,7 @@ export class OpenIdConnectAuthenticationBackend {
                 const response = await fetch((await this.#getProviderConfig()).userinfo_endpoint, {
                     headers: {
                         [HEADER_AUTHORIZATION]: `${session.token_type} ${session.access_token}`
-                    },
-                    ...await this.#getProviderHttpsCertificateOptions()
+                    }
                 });
 
                 if (!response.ok || !(response.headers.get(HEADER_CONTENT_TYPE)?.includes(CONTENT_TYPE_JSON) ?? false)) {
